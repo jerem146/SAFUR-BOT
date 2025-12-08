@@ -26,13 +26,17 @@ var github = 'https://github.com/The-King-Destroy/Yuki_Suou-Bot'
 var correo = 'thekingdestroy507@gmail.com'
 global.redes = [canal, comunidad, git, github, correo].getRandom()
 
-global.packsticker = `
-°.⎯⃘̶⎯̸⎯ܴ⎯̶᳞͇ࠝ⎯⃘̶⎯̸.°
+global.nombre = m.pushName || 'Anónimo'
 
-❀ Bot: ${botname}
-© powered by ${dev}†
+// Nombre del paquete (sale en WhatsApp como autor del sticker)
+global.packsticker = `❀ ${botname}`
+
+// Descripción del sticker (texto que aparece abajo)
+global.packsticker2 = `
+°.⎯⃘̶⎯̸⎯ܴ⎯̶᳞͇ࠝ⎯⃘̶⎯̸.°
+ᰔᩚ Usuario: ${nombre}
+🛠 Dev: ${dev}
 `
-global.packsticker2 = ''
   
 global.fkontak = { key: { participants:"0@s.whatsapp.net", "remoteJid": "status@broadcast", "fromMe": false, "id": "Halo" }, "message": { "contactMessage": { "vcard": `BEGIN:VCARD\nVERSION:3.0\nN:Sy;Bot;;;\nFN:y\nitem1.TEL;waid=${m.sender.split('@')[0]}:${m.sender.split('@')[0]}\nitem1.X-ABLabel:Ponsel\nEND:VCARD` }}, "participant": "0@s.whatsapp.net" }
 global.rcanal = { contextInfo: { isForwarded: true, forwardedNewsletterMessageInfo: { newsletterJid: channelRD.id, serverMessageId: '', newsletterName: channelRD.name }, externalAdReply: { title: botname, body: dev, mediaUrl: null, description: null, previewType: "PHOTO", thumbnail: await (await fetch(icono)).buffer(), sourceUrl: redes, mediaType: 1, renderLargerThumbnail: false }, mentionedJid: null }}
