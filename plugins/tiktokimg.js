@@ -4,23 +4,19 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     if (!args[0]) {
         return m.reply(
             `❌ Ingresa un link de TikTok\n\n` +
-            `Ejemplo:\n${usedPrefix + command} https://vm.tiktok.com/xxxx`
+            `Ejemplo:\n${usedPrefix + command} https://vt.tiktok.com/xxxx`
         )
     }
 
-    await m.react("🕒")
+    await m.react("🖼️")
 
     try {
         const API_KEY_TED = "tedzinho"
         const url = args[0]
 
-        // 🔹 Ruta GENERAL (no solo fotos)
         const api = `https://tedzinho.com.br/api/download/tiktok?apikey=${API_KEY_TED}&url=${encodeURIComponent(url)}`
         const res = await fetch(api)
         const json = await res.json()
-
-        // 🧪 DEBUG (muy importante)
-        console.log("TIKTOK API RESPONSE:", JSON.stringify(json, null, 2))
 
         if (!json || json.status !== "OK" || !json.resultado) {
             return m.reply("❌ La API no devolvió resultados.")
@@ -28,36 +24,41 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
         const data = json.resultado
 
-        // 🔹 Detectar imágenes
-        const images =
-            data.images ||
-            data.photos ||
-            data.image ||
-            []
-
-        if (!Array.isArray(images) || images.length === 0) {
-            return m.reply("❌ Este TikTok no contiene imágenes (solo video).")
+        // ✅ Validar que sea post de imágenes
+        if (data.type !== "image" || !Array.isArray(data.images)) {
+            return m.reply("❌ Este TikTok no es un post de imágenes.")
         }
+
+        // ✅ Datos correctos
+        const autor = data.author?.nickname || data.author?.uniqueId || "Desconocido"
+        const descripcion = data.desc || "Sin descripción"
+        const likes = data.statistics?.likeCount || 0
+        const comentarios = data.statistics?.commentCount || 0
+        const compartidos = data.statistics?.shareCount || 0
+        const imagenes = data.images
 
         let caption =
             `🖼️ *TIKTOK IMÁGENES*\n` +
             `━━━━━━━━━━━━━━━━━━\n` +
-            `👤 *Autor:* ${data.author || data.autor || "Desconocido"}\n` +
-            `📝 *Descripción:* ${data.title || data.desc || "Sin descripción"}\n` +
+            `👤 *Autor:* ${autor}\n` +
+            `📝 *Descripción:* ${descripcion}\n` +
+            `❤️ *Likes:* ${likes}\n` +
+            `💬 *Comentarios:* ${comentarios}\n` +
+            `🔁 *Compartidos:* ${compartidos}\n` +
             `━━━━━━━━━━━━━━━━━━`
 
-        // Primera imagen
+        // 🔹 Primera imagen con texto
         await conn.sendMessage(
             m.chat,
-            { image: { url: images[0] }, caption },
+            { image: { url: imagenes[0] }, caption },
             { quoted: m }
         )
 
-        // Resto
-        for (let i = 1; i < images.length; i++) {
+        // 🔹 Resto de imágenes
+        for (let i = 1; i < imagenes.length; i++) {
             await conn.sendMessage(
                 m.chat,
-                { image: { url: images[i] } },
+                { image: { url: imagenes[i] } },
                 { quoted: m }
             )
         }
@@ -65,9 +66,9 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         await m.react("✅")
 
     } catch (e) {
-        console.error("ERROR TIKTOK IMG:", e)
+        console.error("TIKTOK IMG ERROR:", e)
         await m.react("❌")
-        m.reply("❌ Error interno al procesar TikTok.")
+        m.reply("❌ Error al procesar las imágenes de TikTok.")
     }
 }
 
