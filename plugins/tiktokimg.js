@@ -1,75 +1,45 @@
-// TikTok Image Downloader
-// API: Tedzinho
-// Sin registro / sin coins
+const axios = require('axios');
 
-const axios = require("axios");
+// Suas configurações
+const API_KEY_TED = "tedzinho";
 
-module.exports = {
-    name: 'tiktokimg',
-    aliases: ['ttimg'],
-    description: 'Descarga imágenes de TikTok (Photo Mode)',
+// Função do comando (exemplo genérico para bots de WhatsApp)
+async function downloadTikTokSlide(conn, from, query) {
+    try {
+        if (!query) return console.log("Faltou o link!");
 
-    execute: async (sock, m, args) => {
-        const from = m.key.remoteJid;
-        const reply = (txt) => sock.sendMessage(from, { text: txt }, { quoted: m });
+        // 1. Monta a URL da API para Slides
+        const apiUrl = `https://tedzinho.com.br/api/download/tiktok_slide?apikey=${API_KEY_TED}&nome_url=${encodeURIComponent(query)}`;
 
-        if (!args[0]) return reply('❌ Ingresa el link del TikTok.\nEjemplo:\n.tiktokimg https://vt.tiktok.com/xxxxx');
+        // 2. Faz a requisição
+        const { data } = await axios.get(apiUrl);
 
-        const url = args[0];
-        const isTikTok = /(tiktok\.com|vt\.tiktok\.com)/i.test(url);
-        if (!isTikTok) return reply('❌ Enlace de TikTok no válido.');
-
-        try {
-            await sock.sendMessage(from, { react: { text: '🕓', key: m.key } });
-
-            // 🔹 API Tedzinho (TikTok download)
-            const api = `https://tedzinho.com.br/api/download/tiktok?apikey=tedzinho&url=${encodeURIComponent(url)}`;
-            const res = await axios.get(api);
-            const data = res.data;
-
-            if (!data || data.status !== "OK" || !data.resultado) {
-                throw new Error("Respuesta inválida de la API");
-            }
-
-            const r = data.resultado;
-
-            if (r.type !== "image" || !Array.isArray(r.images) || r.images.length === 0) {
-                return reply('❌ Este TikTok no contiene imágenes.');
-            }
-
-            // 📌 Info opcional
-            const captionInfo =
-                `📸 *TikTok Images*\n` +
-                `👤 ${r.author?.nickname || 'Desconocido'}\n` +
-                `❤️ ${r.statistics?.likeCount || 0} | 💬 ${r.statistics?.commentCount || 0}`;
-
-            await reply(`📥 Encontradas *${r.images.length}* imágenes. Enviando...`);
-
-            // 🔽 Enviar imágenes UNA POR UNA
-            for (let i = 0; i < r.images.length; i++) {
-                const img = r.images[i];
-
-                await sock.sendMessage(
-                    from,
-                    {
-                        image: { url: img },
-                        caption: i === 0 ? captionInfo : undefined
-                    },
-                    { quoted: m }
-                );
-            }
-
-            await sock.sendMessage(from, { react: { text: '✅', key: m.key } });
-
-        } catch (err) {
-            console.error('TIKTOK IMG ERROR:', err.message);
-            await sock.sendMessage(from, { react: { text: '❌', key: m.key } });
-            reply('❌ Error al descargar las imágenes del TikTok.');
+        // 3. Verifica se a API retornou sucesso
+        if (!data || !data.status) {
+            return conn.sendMessage(from, { text: '❌ Erro ao buscar imagens. Verifique se o link é um slide válido.' });
         }
-    }
-};
 
-// 🔓 SIN BLOQUEOS
-// NO handler.register
-// NO handler.coin
-// NO handler.group
+        // 4. Envia as imagens
+        // A API geralmente retorna as imagens dentro de 'result' ou 'data' como um array
+        // Ajuste 'data.result' conforme o retorno exato da API do Tedzinho para slides
+        const imagens = data.result || data.images; 
+
+        if (imagens && imagens.length > 0) {
+            conn.sendMessage(from, { text: `✅ Encontrei ${imagens.length} imagens. Enviando...` });
+
+            for (let imgUrl of imagens) {
+                // Envia cada imagem
+                await conn.sendMessage(from, { 
+                    image: { url: imgUrl }, 
+                    caption: 'Downloaded by Tedzinho API' 
+                });
+            }
+        } else {
+            conn.sendMessage(from, { text: '❌ Nenhuma imagem encontrada neste link.' });
+        }
+
+    } catch (error) {
+        console.error(error);
+        conn.sendMessage(from, { text: '❌ Ocorreu um erro na API.' });
+    }
+}
