@@ -1,46 +1,61 @@
 import axios from 'axios';
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
-    // 1. Validar que haya texto/link
-    if (!text) return conn.reply(m.chat, `❀ Ingresa un enlace de TikTok Slide (Imágenes).\n\nEjemplo:\n*${usedPrefix + command}* https://vm.tiktok.com/xEmq8F/`, m);
+    if (!text) return conn.reply(m.chat, `❀ Ingresa un enlace de TikTok de imágenes.\n\nEjemplo:\n*${usedPrefix + command}* https://vm.tiktok.com/xEoq8F/`, m);
     
-    // Regex para validar URL de TikTok
     const isUrl = /(?:https:?\/{2})?(?:www\.|vm\.|vt\.|t\.)?tiktok\.com\/([^\s&]+)/gi.test(text);
     if (!isUrl) return conn.reply(m.chat, 'ꕥ Enlace inválido. Asegúrate de que sea un link de TikTok.', m);
 
-    // Tu API Key y URL (Usamos la V5 que soporta slides)
-    const API_KEY_TED = "tedzinho";
-    const apiUrl = `https://tedzinho.com.br/api/download/play_audio/v5?apikey=${API_KEY_TED}&nome_url=${encodeURIComponent(text)}`;
+    await m.react('🕒');
+
+    const API_KEY = "tedzinho";
+    
+    // ⬇️ SOLUCIÓN: Usamos la ruta específica 'tiktok_slide' primero
+    // Si la API falla, intentamos con V8 en el catch
+    let data;
+    
+    try {
+        // INTENTO 1: Ruta específica para Slides
+        const apiUrlSlide = `https://tedzinho.com.br/api/download/tiktok_slide?apikey=${API_KEY}&nome_url=${encodeURIComponent(text)}`;
+        const res = await axios.get(apiUrlSlide);
+        data = res.data;
+
+    } catch (e) {
+        console.log("Fallo ruta slide, intentando ruta V8...");
+        try {
+            // INTENTO 2: Ruta V8 (Suele ser más robusta que la V5)
+            const apiUrlV8 = `https://tedzinho.com.br/api/download/play_audio/v8?apikey=${API_KEY}&nome_url=${encodeURIComponent(text)}`;
+            const resBackup = await axios.get(apiUrlV8);
+            data = resBackup.data;
+        } catch (err2) {
+            await m.react('✖️');
+            return conn.reply(m.chat, '❌ La API falló (Error 500). El servidor de Tedzinho puede estar caído o el enlace es incompatible.', m);
+        }
+    }
 
     try {
-        await m.react('🕒'); // Reacción de espera
-        
-        // 2. Petición a la API
-        const { data } = await axios.get(apiUrl);
-
-        // Validar respuesta exitosa
+        // Validar respuesta
         if (!data || !data.result) {
-            return conn.reply(m.chat, '❌ No se pudo obtener el contenido. Intenta con otro enlace.', m);
+            return conn.reply(m.chat, '❌ No se encontraron resultados.', m);
         }
 
         const result = data.result;
         
-        // 3. Verificar si existen imágenes (Slideshow)
-        // La API suele devolver un array en 'images' si es un slide
-        if (!result.images || result.images.length === 0) {
-            await m.react('✖️');
-            return conn.reply(m.chat, `⚠️ Este enlace parece ser un **VIDEO**, no imágenes.\n> Usa el comando *${usedPrefix}tiktok* para videos.`, m);
+        // Normalizamos la respuesta (algunas rutas devuelven 'images', otras una lista directa)
+        let images = result.images || [];
+        
+        // Si no detectó imágenes pero devolvió éxito, revisamos si es un video
+        if (images.length === 0) {
+            return conn.reply(m.chat, `⚠️ No encontré imágenes en este enlace.\n¿Es posible que sea un video?\nUsa el comando *${usedPrefix}tiktok*`, m);
         }
 
-        // Datos del post
-        const title = result.title || 'TikTok Slide';
-        const author = 'Tedzinho API';
-        const images = result.images;
+        const title = result.title || 'TikTok Images';
         
         await conn.reply(m.chat, `✅ Se encontraron *${images.length}* imágenes. Enviando...`, m);
 
-        // 4. Enviar imágenes
-        // Opción A: Si tu bot tiene función para álbumes (sendSylphy, etc)
+        // --- ENVIAR IMÁGENES ---
+        
+        // Método A: Si tienes sendSylphy (Recomendado)
         if (conn.sendSylphy) {
             const medias = images.map(url => ({
                 type: 'image',
@@ -49,28 +64,31 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
             }));
             await conn.sendSylphy(m.chat, medias, { quoted: m });
         } 
-        // Opción B: Método clásico (una por una para evitar errores en Baileys puro)
+        // Método B: Enviar una por una (Más seguro si no tienes sendSylphy)
         else {
             for (let i = 0; i < images.length; i++) {
+                // Pequeña pausa para no saturar
+                await new Promise(resolve => setTimeout(resolve, 500)); 
+                
                 await conn.sendMessage(m.chat, { 
                     image: { url: images[i] }, 
-                    caption: (i === 0) ? `❀ *${title}*\n> 📸 (${i + 1}/${images.length})` : null // Solo pone caption en la primera
+                    caption: i === 0 ? `❀ *${title}*` : '' 
                 }, { quoted: m });
             }
         }
 
-        // 5. Enviar el audio de fondo si existe
+        // --- ENVIAR AUDIO ---
         if (result.music) {
             await conn.sendMessage(m.chat, { 
                 audio: { url: result.music }, 
                 mimetype: 'audio/mp4', 
-                fileName: 'tiktok_slide_audio.mp3',
+                fileName: 'audio.mp3',
                 ppt: true,
                 contextInfo: {
                     externalAdReply: {
-                        title: "🎵 Audio del Slide",
+                        title: "🎵 Sonido de fondo",
                         body: title,
-                        thumbnailUrl: images[0], // Usa la primera imagen como portada
+                        thumbnailUrl: images[0],
                         sourceUrl: text,
                         mediaType: 1,
                         renderLargerThumbnail: true
@@ -84,13 +102,13 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
     } catch (e) {
         console.error(e);
         await m.react('✖️');
-        conn.reply(m.chat, `Error al descargar las imágenes.\n${e.message}`, m);
+        conn.reply(m.chat, `Error al procesar los datos: ${e.message}`, m);
     }
 };
 
-handler.help = ['ttimg', 'tiktokimg', 'ttslide'];
+handler.help = ['ttimg', 'tiktokimg'];
 handler.tags = ['downloader'];
-handler.command = /^(ttimg|tiktokimg|ttslide|tiktoks)$/i;
-handler.limit = 1; 
+handler.command = /^(ttimg|tiktokimg|ttslide)$/i;
+handler.limit = 1;
 
 export default handler;
