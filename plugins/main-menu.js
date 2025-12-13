@@ -1,12 +1,15 @@
 import fetch from 'node-fetch'
 
 let handler = async (m, { conn, args }) => {
-let mentionedJid = await m.mentionedJid
-let userId = mentionedJid && mentionedJid[0] ? mentionedJid[0] : m.sender
-let totalreg = Object.keys(global.db.data.users).length
-let totalCommands = Object.values(global.plugins).filter((v) => v.help && v.tags).length
+    let mentionedJid = await m.mentionedJid
+    let userId = mentionedJid && mentionedJid[0] ? mentionedJid[0] : m.sender
+    let totalreg = Object.keys(global.db.data.users).length
+    let totalCommands = Object.values(global.plugins).filter((v) => v.help && v.tags).length
 
-let txt = `̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮
+    // 👇 AQUÍ PUSE TU IMAGEN NUEVA
+    let safurImg = 'https://i.postimg.cc/D0JsmHDD/a-stylized-anime-illustration-of-an-eleg-ktf-LDl-ZKRPi-B-Ukj-Xn-Rtvg-wm7fh-0QQHinz-LJV8c-6Vw.jpg'
+
+    let txt = `̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮
 ︶•︶°︶•︶°︶•︶°︶•︶°︶•︶°︶
 > ❀ hola! @${userId.split('@')[0]}, Soy ${botname}, Aquí tienes la lista de comandos.
 
@@ -436,27 +439,31 @@ let txt = `̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮  
 ✦ *#xnxx •#xnxxdl* + [Link]
 > ⸙ Descargar un video Xnxx.
 ╰ׅ͜─֟͜─͜─ٞ͜─͜─๊͜─͜─๋͜─⃔═̶፝֟͜═̶⃔─๋͜─͜─͜─๊͜─ٞ͜─͜─֟͜┈ࠢ͜╯ׅ`.trim()
-await conn.sendMessage(m.chat, { 
-text: txt,
-contextInfo: {
-mentionedJid: [userId],
-isForwarded: true,
-forwardedNewsletterMessageInfo: {
-newsletterJid: channelRD.id,
-serverMessageId: '',
-newsletterName: channelRD.name
-},
-externalAdReply: {
-title: botname,
-body: textbot,
-mediaType: 1,
-mediaUrl: redes,
-sourceUrl: redes,
-thumbnail: await (await fetch(banner)).buffer(),
-showAdAttribution: false,
-containsAutoReply: true,
-renderLargerThumbnail: true
-}}}, { quoted: m })
+
+    await conn.sendMessage(m.chat, { 
+        text: txt,
+        contextInfo: {
+            mentionedJid: [userId],
+            isForwarded: true,
+            forwardedNewsletterMessageInfo: {
+                newsletterJid: channelRD.id,
+                serverMessageId: '',
+                newsletterName: channelRD.name
+            },
+            externalAdReply: {
+                title: botname,
+                body: textbot,
+                mediaType: 1,
+                mediaUrl: redes,
+                sourceUrl: redes,
+                // 👇 Y AQUÍ SE USA LA IMAGEN
+                thumbnail: await (await fetch(safurImg)).buffer(), 
+                showAdAttribution: false,
+                containsAutoReply: true,
+                renderLargerThumbnail: true
+            }
+        }
+    }, { quoted: m })
 }
 
 handler.help = ['menu']
