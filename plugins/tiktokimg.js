@@ -1,92 +1,100 @@
 import axios from 'axios';
 
 const handler = async (m, { conn, text, usedPrefix, command }) => {
-    if (!text) return conn.reply(m.chat, `❀ Ingresa un enlace de TikTok de imágenes.\n\nEjemplo:\n*${usedPrefix + command}* https://vm.tiktok.com/xEoq8F/`, m);
+    if (!text) return conn.reply(m.chat, `❀ Ingresa un enlace de TikTok Slide (Imágenes).\n\nEjemplo:\n*${usedPrefix + command}* https://vm.tiktok.com/xEoq8F/`, m);
     
+    // Regex para validar URL
     const isUrl = /(?:https:?\/{2})?(?:www\.|vm\.|vt\.|t\.)?tiktok\.com\/([^\s&]+)/gi.test(text);
-    if (!isUrl) return conn.reply(m.chat, 'ꕥ Enlace inválido. Asegúrate de que sea un link de TikTok.', m);
+    if (!isUrl) return conn.reply(m.chat, 'ꕥ Enlace inválido. Ingresa un link de TikTok.', m);
 
     await m.react('🕒');
 
-    const API_KEY = "tedzinho";
-    
-    // ⬇️ SOLUCIÓN: Usamos la ruta específica 'tiktok_slide' primero
-    // Si la API falla, intentamos con V8 en el catch
-    let data;
-    
-    try {
-        // INTENTO 1: Ruta específica para Slides
-        const apiUrlSlide = `https://tedzinho.com.br/api/download/tiktok_slide?apikey=${API_KEY}&nome_url=${encodeURIComponent(text)}`;
-        const res = await axios.get(apiUrlSlide);
-        data = res.data;
+    let images = [];
+    let title = 'TikTok Slide';
+    let audio = null;
+    let source = '';
 
+    // --- INTENTO 1: API Tedzinho (V8) ---
+    try {
+        const API_KEY = "tedzinho";
+        const apiUrl = `https://tedzinho.com.br/api/download/play_audio/v8?apikey=${API_KEY}&nome_url=${encodeURIComponent(text)}`;
+        
+        const { data } = await axios.get(apiUrl);
+        
+        // Verificamos si la API trajo imágenes en alguna parte común
+        if (data && data.result) {
+            // A veces vienen en result.images, otras en result.data.images
+            const imgs = data.result.images || data.result.data?.images || [];
+            
+            if (imgs.length > 0) {
+                images = imgs;
+                title = data.result.title || title;
+                audio = data.result.music;
+                source = 'Tedzinho API';
+            }
+        }
     } catch (e) {
-        console.log("Fallo ruta slide, intentando ruta V8...");
+        console.log("Falló Tedzinho V8, pasando a respaldo...");
+    }
+
+    // --- INTENTO 2: Respaldo (TikWM - Pública) ---
+    // Si la API de pago falló o no trajo imágenes, usamos esta gratis que funciona muy bien para slides.
+    if (images.length === 0) {
         try {
-            // INTENTO 2: Ruta V8 (Suele ser más robusta que la V5)
-            const apiUrlV8 = `https://tedzinho.com.br/api/download/play_audio/v8?apikey=${API_KEY}&nome_url=${encodeURIComponent(text)}`;
-            const resBackup = await axios.get(apiUrlV8);
-            data = resBackup.data;
-        } catch (err2) {
-            await m.react('✖️');
-            return conn.reply(m.chat, '❌ La API falló (Error 500). El servidor de Tedzinho puede estar caído o el enlace es incompatible.', m);
+            const { data } = await axios.get(`https://www.tikwm.com/api/?url=${encodeURIComponent(text)}?hd=1`);
+            
+            if (data && data.data && data.data.images) {
+                images = data.data.images;
+                title = data.data.title || title;
+                audio = data.data.music;
+                source = 'TikWM (Respaldo)';
+            }
+        } catch (e) {
+            console.error(e);
         }
     }
 
+    // --- RESULTADO FINAL ---
+    if (images.length === 0) {
+        await m.react('✖️');
+        return conn.reply(m.chat, `❌ No se encontraron imágenes.\nVerifica que el enlace sea un *Slide de Fotos* y no un video normal.\nPara videos usa *${usedPrefix}tiktok*`, m);
+    }
+
+    // Enviar mensaje de éxito
+    await conn.reply(m.chat, `✅ Se encontraron *${images.length}* imágenes.\n📡 Fuente: ${source}\nEnviando...`, m);
+
     try {
-        // Validar respuesta
-        if (!data || !data.result) {
-            return conn.reply(m.chat, '❌ No se encontraron resultados.', m);
-        }
-
-        const result = data.result;
-        
-        // Normalizamos la respuesta (algunas rutas devuelven 'images', otras una lista directa)
-        let images = result.images || [];
-        
-        // Si no detectó imágenes pero devolvió éxito, revisamos si es un video
-        if (images.length === 0) {
-            return conn.reply(m.chat, `⚠️ No encontré imágenes en este enlace.\n¿Es posible que sea un video?\nUsa el comando *${usedPrefix}tiktok*`, m);
-        }
-
-        const title = result.title || 'TikTok Images';
-        
-        await conn.reply(m.chat, `✅ Se encontraron *${images.length}* imágenes. Enviando...`, m);
-
-        // --- ENVIAR IMÁGENES ---
-        
-        // Método A: Si tienes sendSylphy (Recomendado)
+        // Enviar imágenes (Modo compatible con todos los bots)
         if (conn.sendSylphy) {
+            // Si tienes el plugin de álbumes
             const medias = images.map(url => ({
                 type: 'image',
                 data: { url },
                 caption: `📷 *${title}*`
             }));
             await conn.sendSylphy(m.chat, medias, { quoted: m });
-        } 
-        // Método B: Enviar una por una (Más seguro si no tienes sendSylphy)
-        else {
+        } else {
+            // Modo manual (una por una)
             for (let i = 0; i < images.length; i++) {
-                // Pequeña pausa para no saturar
-                await new Promise(resolve => setTimeout(resolve, 500)); 
-                
                 await conn.sendMessage(m.chat, { 
                     image: { url: images[i] }, 
-                    caption: i === 0 ? `❀ *${title}*` : '' 
+                    caption: (i === 0) ? `❀ *${title}*\n> 📸 (${i + 1}/${images.length})` : null 
                 }, { quoted: m });
+                // Pequeña pausa para evitar spam
+                await new Promise(r => setTimeout(r, 400));
             }
         }
 
-        // --- ENVIAR AUDIO ---
-        if (result.music) {
+        // Enviar Audio (Si existe)
+        if (audio) {
             await conn.sendMessage(m.chat, { 
-                audio: { url: result.music }, 
+                audio: { url: audio }, 
                 mimetype: 'audio/mp4', 
-                fileName: 'audio.mp3',
+                fileName: 'slide_audio.mp3',
                 ppt: true,
                 contextInfo: {
                     externalAdReply: {
-                        title: "🎵 Sonido de fondo",
+                        title: "🎵 Audio del Slide",
                         body: title,
                         thumbnailUrl: images[0],
                         sourceUrl: text,
@@ -101,12 +109,11 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 
     } catch (e) {
         console.error(e);
-        await m.react('✖️');
-        conn.reply(m.chat, `Error al procesar los datos: ${e.message}`, m);
+        conn.reply(m.chat, '⚠️ Ocurrió un error al enviar los archivos.', m);
     }
 };
 
-handler.help = ['ttimg', 'tiktokimg'];
+handler.help = ['ttimg', 'tiktokimg', 'ttslide'];
 handler.tags = ['downloader'];
 handler.command = /^(ttimg|tiktokimg|ttslide)$/i;
 handler.limit = 1;
