@@ -9,17 +9,13 @@ let handler = async (m, { conn, args }) => {
     // 👇 AQUÍ PUSE TU IMAGEN NUEVA
     let safurImg = 'https://i.postimg.cc/kMWRY08L/a-masterpiece-anime-style-illustration-o-w6kn-Bx-JYRdm-APmx-GHNl-Qk-A-8q-Qnqg1BRdyw7Tm-o-M1x-Pg.jpg'
 
-    let txt = `̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮
-︶•︶°︶•︶°︶•︶°︶•︶°︶•︶°︶
-> ❀ hola! @${userId.split('@')[0]}, Soy ${botname}, Aquí tienes la lista de comandos.
+    let txt = `➤ *${botname}* está activo.
+👋 Hola @${userId.split('@')[0]}
 
-╭┈ࠢ͜┅ࠦ͜͜╾݊͜─ؕ͜─ׄ͜─֬͜─֟͜─֫͜─ׄ͜─ؕ͜─݊͜┈ࠦ͜┅ࠡ͜͜┈࠭͜͜۰۰͜۰
-│✦ *Tipo* » ${(conn.user.jid == global.conn.user.jid ? 'Principal' : 'Sub-Bot')}
-│✰ *Usuarios* » ${totalreg.toLocaleString()}
-│⚘ *Versión* » ${vs}
-│ꕥ *Plugins* » ${totalCommands}
-│🜸 *Librería* » ${libreria}
-╰ׅ┈ࠢ͜─ׄ͜─ׄ֟፝͜─ׄ͜─ׄ͜╴ ⋱࣭ ᩴ  ⋮֔   ᩴ ⋰╶͜─ׄ͜─ׄ֟፝͜─ׄ͜─ׄ͜┈ࠢ͜╯ׅ
+▪️ *Usuarios:* ${totalreg.toLocaleString()}
+▪️ *Comandos:* ${totalCommands}
+▪️ *Sistema:* ${libreria} (v${vs})
+`
 
 ╭┈ࠢ͜─ׄ֟፝͜─ׄ͜─ׄ͜╴𐔌 *ECONOMY* 𐦯╶͜─ׄ͜─ׄ֟፝͜─ׄ͜─ׄ͜
 > ✿ Comandos de *Economía* para ganar dinero.
