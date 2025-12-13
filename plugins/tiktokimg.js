@@ -8,7 +8,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         )
     }
 
-    await m.react("🕒")
+    await m.react("📦")
 
     try {
         const API_KEY_TED = "tedzinho"
@@ -30,31 +30,31 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
         const autor = data.author?.nickname || data.author?.uniqueId || "Desconocido"
         const descripcion = data.desc || "Sin descripción"
-        const likes = data.statistics?.likeCount || 0
-        const comentarios = data.statistics?.commentCount || 0
-        const compartidos = data.statistics?.shareCount || 0
-        const imagenes = data.images
 
-        let caption =
-            `🖼️ *TIKTOK IMÁGENES*\n` +
-            `━━━━━━━━━━━━━━━━━━\n` +
-            `👤 *Autor:* ${autor}\n` +
-            `📝 *Descripción:* ${descripcion}\n` +
-            `❤️ *Likes:* ${likes}\n` +
-            `💬 *Comentarios:* ${comentarios}\n` +
-            `🔁 *Compartidos:* ${compartidos}\n` +
-            `━━━━━━━━━━━━━━━━━━`
+        await m.reply(
+            `🖼️ *TIKTOK IMÁGENES*\n\n` +
+            `👤 Autor: ${autor}\n` +
+            `📝 ${descripcion}\n\n` +
+            `📦 Enviando imágenes como archivos descargables...`
+        )
 
-        // 🔹 Descargar y enviar cada imagen como BUFFER
-        for (let i = 0; i < imagenes.length; i++) {
-            const imgRes = await fetch(imagenes[i])
+        // 🔥 ENVIAR COMO DOCUMENTO (NO COMO IMAGE)
+        for (let i = 0; i < data.images.length; i++) {
+            const imgRes = await fetch(data.images[i], {
+                headers: {
+                    "User-Agent": "Mozilla/5.0",
+                    "Referer": "https://www.tiktok.com/"
+                }
+            })
+
             const buffer = await imgRes.buffer()
 
             await conn.sendMessage(
                 m.chat,
                 {
-                    image: buffer,
-                    caption: i === 0 ? caption : ""
+                    document: buffer,
+                    mimetype: "image/webp",
+                    fileName: `tiktok_img_${i + 1}.webp`
                 },
                 { quoted: m }
             )
@@ -66,53 +66,6 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         console.error("TIKTOK IMG ERROR:", e)
         await m.react("❌")
         m.reply("❌ Error al descargar las imágenes de TikTok.")
-    }
-}
-
-handler.command = ["tiktokimg", "ttimg"]
-handler.tags = ["downloader"]
-handler.help = ["tiktokimg <link>"]
-
-export default handler
-        const autor = data.author?.nickname || data.author?.uniqueId || "Desconocido"
-        const descripcion = data.desc || "Sin descripción"
-        const likes = data.statistics?.likeCount || 0
-        const comentarios = data.statistics?.commentCount || 0
-        const compartidos = data.statistics?.shareCount || 0
-        const imagenes = data.images
-
-        let caption =
-            `🖼️ *TIKTOK IMÁGENES*\n` +
-            `━━━━━━━━━━━━━━━━━━\n` +
-            `👤 *Autor:* ${autor}\n` +
-            `📝 *Descripción:* ${descripcion}\n` +
-            `❤️ *Likes:* ${likes}\n` +
-            `💬 *Comentarios:* ${comentarios}\n` +
-            `🔁 *Compartidos:* ${compartidos}\n` +
-            `━━━━━━━━━━━━━━━━━━`
-
-        // 🔹 Primera imagen con texto
-        await conn.sendMessage(
-            m.chat,
-            { image: { url: imagenes[0] }, caption },
-            { quoted: m }
-        )
-
-        // 🔹 Resto de imágenes
-        for (let i = 1; i < imagenes.length; i++) {
-            await conn.sendMessage(
-                m.chat,
-                { image: { url: imagenes[i] } },
-                { quoted: m }
-            )
-        }
-
-        await m.react("✅")
-
-    } catch (e) {
-        console.error("TIKTOK IMG ERROR:", e)
-        await m.react("❌")
-        m.reply("❌ Error al procesar las imágenes de TikTok.")
     }
 }
 
