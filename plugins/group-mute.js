@@ -26,7 +26,7 @@ let handler = async (m, { conn, usedPrefix, command, isBotAdmin }) => {
 
     if (!who) {
         return m.reply(
-            `[ ! ] Debes etiquetar a alguien o responder a su mensaje.\n\nEjemplo:\n${usedPrefix + command} @usuario`
+            ``
         )
     }
 
