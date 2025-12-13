@@ -16,7 +16,7 @@ let handler = async (m, { conn, args }) => {
 │ 👥 Total: ${totalreg.toLocaleString()}
 │ 🧩 Plugins: ${totalCommands}
 │ 📚 Lib: ${libreria}
-╰─────────────────`
+╰─────────────────
 
 ╭┈ࠢ͜─ׄ֟፝͜─ׄ͜─ׄ͜╴𐔌 *ECONOMY* 𐦯╶͜─ׄ͜─ׄ֟፝͜─ׄ͜─ׄ͜
 > ✿ Comandos de *Economía* para ganar dinero.
