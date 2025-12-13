@@ -13,6 +13,10 @@ let handler = async (m, { conn, args }) => {
 ︶•︶°︶•︶°︶•︶°︶•︶°︶•︶°︶
 ❀ hola! @${userId.split('@')[0]}, Soy ${botname}, Aquí tienes la lista de comandos
 
+▪️ *Usuarios:* ${totalreg.toLocaleString()}
+▪️ *Comandos:* ${totalCommands}
+▪️ *Sistema:* ${libreria} (v${vs})
+
 ╭┈ࠢ͜─ׄ֟፝͜─ׄ͜─ׄ͜╴𐔌 *ECONOMY* 𐦯╶͜─ׄ͜─ׄ֟፝͜─ׄ͜─ׄ͜
 > ✿ Comandos de *Economía* para ganar dinero.
 ✦ *#w • #work • #trabajar*
