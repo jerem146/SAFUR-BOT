@@ -7,7 +7,7 @@ let handler = async (m, { conn, args }) => {
     let totalCommands = Object.values(global.plugins).filter((v) => v.help && v.tags).length
 
     // 👇 AQUÍ PUSE TU IMAGEN NUEVA
-    let safurImg = 'https://i.postimg.cc/D0JsmHDD/a-stylized-anime-illustration-of-an-eleg-ktf-LDl-ZKRPi-B-Ukj-Xn-Rtvg-wm7fh-0QQHinz-LJV8c-6Vw.jpg'
+    let safurImg = 'https://i.postimg.cc/kMWRY08L/a-masterpiece-anime-style-illustration-o-w6kn-Bx-JYRdm-APmx-GHNl-Qk-A-8q-Qnqg1BRdyw7Tm-o-M1x-Pg.jpg'
 
     let txt = `̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮
 ︶•︶°︶•︶°︶•︶°︶•︶°︶•︶°︶
