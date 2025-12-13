@@ -8,7 +8,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         )
     }
 
-    await m.react("🖼️")
+    await m.react("🕒")
 
     try {
         const API_KEY_TED = "tedzinho"
@@ -24,12 +24,56 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
         const data = json.resultado
 
-        // ✅ Validar que sea post de imágenes
         if (data.type !== "image" || !Array.isArray(data.images)) {
             return m.reply("❌ Este TikTok no es un post de imágenes.")
         }
 
-        // ✅ Datos correctos
+        const autor = data.author?.nickname || data.author?.uniqueId || "Desconocido"
+        const descripcion = data.desc || "Sin descripción"
+        const likes = data.statistics?.likeCount || 0
+        const comentarios = data.statistics?.commentCount || 0
+        const compartidos = data.statistics?.shareCount || 0
+        const imagenes = data.images
+
+        let caption =
+            `🖼️ *TIKTOK IMÁGENES*\n` +
+            `━━━━━━━━━━━━━━━━━━\n` +
+            `👤 *Autor:* ${autor}\n` +
+            `📝 *Descripción:* ${descripcion}\n` +
+            `❤️ *Likes:* ${likes}\n` +
+            `💬 *Comentarios:* ${comentarios}\n` +
+            `🔁 *Compartidos:* ${compartidos}\n` +
+            `━━━━━━━━━━━━━━━━━━`
+
+        // 🔹 Descargar y enviar cada imagen como BUFFER
+        for (let i = 0; i < imagenes.length; i++) {
+            const imgRes = await fetch(imagenes[i])
+            const buffer = await imgRes.buffer()
+
+            await conn.sendMessage(
+                m.chat,
+                {
+                    image: buffer,
+                    caption: i === 0 ? caption : ""
+                },
+                { quoted: m }
+            )
+        }
+
+        await m.react("✅")
+
+    } catch (e) {
+        console.error("TIKTOK IMG ERROR:", e)
+        await m.react("❌")
+        m.reply("❌ Error al descargar las imágenes de TikTok.")
+    }
+}
+
+handler.command = ["tiktokimg", "ttimg"]
+handler.tags = ["downloader"]
+handler.help = ["tiktokimg <link>"]
+
+export default handler
         const autor = data.author?.nickname || data.author?.uniqueId || "Desconocido"
         const descripcion = data.desc || "Sin descripción"
         const likes = data.statistics?.likeCount || 0
