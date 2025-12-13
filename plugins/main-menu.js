@@ -9,14 +9,9 @@ let handler = async (m, { conn, args }) => {
     // 👇 AQUÍ PUSE TU IMAGEN NUEVA
     let safurImg = 'https://i.postimg.cc/kMWRY08L/a-masterpiece-anime-style-illustration-o-w6kn-Bx-JYRdm-APmx-GHNl-Qk-A-8q-Qnqg1BRdyw7Tm-o-M1x-Pg.jpg'
 
-  let txt = `🤖 *${botname}* | v${vs}
-👤 Usuario: @${userId.split('@')[0]}
-
-╭─── 📊 *INFO* ───
-│ 👥 Total: ${totalreg.toLocaleString()}
-│ 🧩 Plugins: ${totalCommands}
-│ 📚 Lib: ${libreria}
-╰─────────────────
+  let txt = `̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮   ̮
+︶•︶°︶•︶°︶•︶°︶•︶°︶•︶°︶
+❀ hola! @${userId.split('@')[0]}, Soy ${botname}, Aquí tienes la lista de comandos.
 
 ╭┈ࠢ͜─ׄ֟፝͜─ׄ͜─ׄ͜╴𐔌 *ECONOMY* 𐦯╶͜─ׄ͜─ׄ֟፝͜─ׄ͜─ׄ͜
 > ✿ Comandos de *Economía* para ganar dinero.
