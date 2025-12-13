@@ -1,69 +1,75 @@
+// TikTok Image Downloader
+// API: Tedzinho
+// Sin registro / sin coins
+
 const axios = require("axios");
 
 module.exports = {
     name: 'tiktokimg',
     aliases: ['ttimg'],
-    description: 'Descarga imágenes de TikTok',
+    description: 'Descarga imágenes de TikTok (Photo Mode)',
 
     execute: async (sock, m, args) => {
         const from = m.key.remoteJid;
-        const reply = (text) =>
-            sock.sendMessage(from, { text }, { quoted: m });
+        const reply = (txt) => sock.sendMessage(from, { text: txt }, { quoted: m });
 
-        if (!args.length)
-            return reply('❀ Ingresa un enlace de TikTok.');
+        if (!args[0]) return reply('❌ Ingresa el link del TikTok.\nEjemplo:\n.tiktokimg https://vt.tiktok.com/xxxxx');
 
         const url = args[0];
-        if (!/tiktok\.com/.test(url))
-            return reply('❀ Enlace de TikTok inválido.');
+        const isTikTok = /(tiktok\.com|vt\.tiktok\.com)/i.test(url);
+        if (!isTikTok) return reply('❌ Enlace de TikTok no válido.');
 
         try {
-            await sock.sendMessage(from, {
-                react: { text: '🕒', key: m.key }
-            });
+            await sock.sendMessage(from, { react: { text: '🕓', key: m.key } });
 
-            // ✅ URL CORRECTA
-            const api = `https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`;
+            // 🔹 API Tedzinho (TikTok download)
+            const api = `https://tedzinho.com.br/api/download/tiktok?apikey=tedzinho&url=${encodeURIComponent(url)}`;
             const res = await axios.get(api);
-            const data = res.data?.data;
+            const data = res.data;
 
-            if (!data || !Array.isArray(data.images) || data.images.length === 0) {
-                await sock.sendMessage(from, { react: { text: '❌', key: m.key } });
-                return reply('❀ Este TikTok no contiene imágenes.');
+            if (!data || data.status !== "OK" || !data.resultado) {
+                throw new Error("Respuesta inválida de la API");
             }
 
-            await reply(`📸 Se encontraron *${data.images.length}* imágenes.`);
+            const r = data.resultado;
 
-            // 🔥 Descargar y reenviar como BUFFER
-            for (let i = 0; i < data.images.length; i++) {
-                const img = await axios.get(data.images[i], {
-                    responseType: "arraybuffer",
-                    headers: {
-                        "User-Agent": "Mozilla/5.0",
-                        "Referer": "https://www.tiktok.com/"
-                    }
-                });
+            if (r.type !== "image" || !Array.isArray(r.images) || r.images.length === 0) {
+                return reply('❌ Este TikTok no contiene imágenes.');
+            }
+
+            // 📌 Info opcional
+            const captionInfo =
+                `📸 *TikTok Images*\n` +
+                `👤 ${r.author?.nickname || 'Desconocido'}\n` +
+                `❤️ ${r.statistics?.likeCount || 0} | 💬 ${r.statistics?.commentCount || 0}`;
+
+            await reply(`📥 Encontradas *${r.images.length}* imágenes. Enviando...`);
+
+            // 🔽 Enviar imágenes UNA POR UNA
+            for (let i = 0; i < r.images.length; i++) {
+                const img = r.images[i];
 
                 await sock.sendMessage(
                     from,
                     {
-                        image: img.data,
-                        caption: `📸 Imagen ${i + 1}`
+                        image: { url: img },
+                        caption: i === 0 ? captionInfo : undefined
                     },
                     { quoted: m }
                 );
             }
 
-            await sock.sendMessage(from, {
-                react: { text: '✔️', key: m.key }
-            });
+            await sock.sendMessage(from, { react: { text: '✅', key: m.key } });
 
         } catch (err) {
-            console.error("tiktokimg error:", err);
-            await sock.sendMessage(from, {
-                react: { text: '✖️', key: m.key }
-            });
-            reply('⚠️ Error al descargar las imágenes de TikTok.');
+            console.error('TIKTOK IMG ERROR:', err.message);
+            await sock.sendMessage(from, { react: { text: '❌', key: m.key } });
+            reply('❌ Error al descargar las imágenes del TikTok.');
         }
     }
 };
+
+// 🔓 SIN BLOQUEOS
+// NO handler.register
+// NO handler.coin
+// NO handler.group
