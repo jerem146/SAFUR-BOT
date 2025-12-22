@@ -39,12 +39,19 @@ externalAdReply: {
 title: `𐔌 . ⋮ ᗩ ᐯ I Տ O .ᐟ ֹ ₊ ꒱ — ${nombreGrupo}`,
 body: textbot,
 previewType: "PHOTO",
-jpegThumbnail: buffer, // <<< aquí está la clave
+jpegThumbnail: buffer,
 mediaType: 1,
 sourceUrl: redes,
-renderLargerThumbnail: false,
-},
+renderLargerThumbnail: false
 }
+}
+}
+
+// usa rcanal aquí ↓
+// await conn.sendMessage(m.chat, { text: textbot }, rcanal)
+
+} catch (e) {
+console.log(e)
 }
 const nombre = `> ❀ @${usuario.split('@')[0]} Ha cambiado el nombre del grupo.\n> ✦ Ahora el grupo se llama:\n> *${m.messageStubParameters[0]}*.`
 const foto = `> ❀ Se ha cambiado la imagen del grupo.\n> ✦ Acción hecha por:\n> » @${usuario.split('@')[0]}`
