@@ -1,25 +1,30 @@
 /*
    Archivo: /plugins/group-unmute.js
-   Comando: .unmute
 */
 
 let handler = async (m, { conn, usedPrefix, command, chat, args }) => {
     if (!chat.mutedUsers) chat.mutedUsers = {}
 
-    // Obtener usuario por respuesta, etiqueta o número
+    // Obtener el ID de la misma forma que en el mute
     let who = m.quoted ? m.quoted.sender : m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : args[0] ? args[0].replace(/[@ .+-]/g, '') + '@s.whatsapp.net' : ''
+    
+    if (!who && m.message?.extendedTextMessage?.contextInfo?.mentionedJid) {
+        who = m.message.extendedTextMessage.contextInfo.mentionedJid[0]
+    }
 
     if (!who) return m.reply(`💡 *Modo de uso:*\n${usedPrefix + command} @usuario o responde a un mensaje.`)
 
+    who = conn.decodeJid(who) // IMPORTANTE: Normalizar para encontrar la clave en el objeto
+
     if (!chat.mutedUsers[who]) {
-        return m.reply(`[ ! ] El usuario @${who.split('@')[0]} no está en la lista de silenciados.`, null, { mentions: [who] })
+        return m.reply(`[ ! ] @${who.split('@')[0]} no está en la lista de silenciados.`, null, { mentions: [who] })
     }
 
-    // Eliminar de la lista de muteados
+    // Eliminar de la base de datos
     delete chat.mutedUsers[who]
 
     return m.reply(
-        `[ 🔊 ] *USUARIO DESMUTEADO*\n\n@${who.split('@')[0]} ya puede hablar normalmente.`,
+        `[ 🔊 ] *USUARIO DESSILENCIADO*\n\n@${who.split('@')[0]} ya puede hablar nuevamente.`,
         null,
         { mentions: [who] }
     )
