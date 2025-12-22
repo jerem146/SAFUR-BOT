@@ -25,6 +25,8 @@ let ppgroup = await conn.profilePictureUrl(m.chat, "image")
 let buffer = await (await fetch(ppgroup)).buffer()
 if (buffer.length > 40000) ppgroup = "https://files.catbox.moe/9p7y6j.jpg"
 
+buffer = await (await fetch(ppgroup)).buffer()
+
 const rcanal = { 
 contextInfo: { 
 isForwarded: true, 
@@ -37,14 +39,13 @@ externalAdReply: {
 title: `𐔌 . ⋮ ᗩ ᐯ I Տ O .ᐟ ֹ ₊ ꒱ — ${nombreGrupo}`,
 body: textbot,
 previewType: "PHOTO",
-thumbnail: buffer,
+jpegThumbnail: buffer, // <<< aquí está la clave
 mediaType: 1,
 sourceUrl: redes,
 renderLargerThumbnail: false,
 },
 }
 }
-const pp = await conn.profilePictureUrl(m.chat, 'image').catch(_ => null) || 'https://files.catbox.moe/99j39u.png'
 const nombre = `> ❀ @${usuario.split('@')[0]} Ha cambiado el nombre del grupo.\n> ✦ Ahora el grupo se llama:\n> *${m.messageStubParameters[0]}*.`
 const foto = `> ❀ Se ha cambiado la imagen del grupo.\n> ✦ Acción hecha por:\n> » @${usuario.split('@')[0]}`
 const edit = `> ❀ @${usuario.split('@')[0]} Ha permitido que ${m.messageStubParameters[0] == 'on' ? 'solo admins' : 'todos'} puedan configurar el grupo.`
