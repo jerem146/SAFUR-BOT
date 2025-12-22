@@ -15,17 +15,11 @@ const chat = global.db.data.chats[m.chat]
 const users = m.messageStubParameters[0]
 const usuario = await resolveLidToRealJid(m?.sender, conn, m?.chat)
 const groupAdmins = participants.filter(p => p.admin)
-try {
 let nombreGrupo = (await conn.groupMetadata(m.chat)).subject
 
 let ppgroup = await conn.profilePictureUrl(m.chat, "image")
     .catch(async _ => await conn.profilePictureUrl(m.chat, "preview")
         .catch(_ => "https://files.catbox.moe/9p7y6j.jpg"))
-
-let buffer = await (await fetch(ppgroup)).buffer()
-if (buffer.length > 40000) ppgroup = "https://files.catbox.moe/9p7y6j.jpg"
-
-buffer = await (await fetch(ppgroup)).buffer()
 
 const rcanal = { 
 contextInfo: { 
@@ -39,19 +33,12 @@ externalAdReply: {
 title: `𐔌 . ⋮ ᗩ ᐯ I Տ O .ᐟ ֹ ₊ ꒱ — ${nombreGrupo}`,
 body: textbot,
 previewType: "PHOTO",
-jpegThumbnail: buffer,
+thumbnailUrl: ppgroup,  // <<< Nueva clave
 mediaType: 1,
 sourceUrl: redes,
 renderLargerThumbnail: false
 }
 }
-}
-
-// usa rcanal aquí ↓
-// await conn.sendMessage(m.chat, { text: textbot }, rcanal)
-
-} catch (e) {
-console.log(e)
 }
 const nombre = `> ❀ @${usuario.split('@')[0]} Ha cambiado el nombre del grupo.\n> ✦ Ahora el grupo se llama:\n> *${m.messageStubParameters[0]}*.`
 const foto = `> ❀ Se ha cambiado la imagen del grupo.\n> ✦ Acción hecha por:\n> » @${usuario.split('@')[0]}`
