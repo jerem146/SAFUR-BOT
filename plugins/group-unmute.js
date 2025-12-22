@@ -1,35 +1,30 @@
 /*
    Archivo: /plugins/group-unmute.js
-   Comando: UNMUTE por etiqueta o respuesta
+   Comando: .unmute
 */
 
-// Función auxiliar para normalizar JID
-function normalizeJid(jid) {
-    return jid.replace(/[\u202A-\u202E]/g, '').split(':')[0]
-}
-
-let handler = async (m) => {
-    let chat = global.db.data.chats[m.chat]
+let handler = async (m, { conn, usedPrefix, command, chat, args }) => {
     if (!chat.mutedUsers) chat.mutedUsers = {}
 
-    // Obtener usuario
-    let who = m.quoted?.sender
-        || m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.[0]
-        || m.chat
+    // Obtener usuario por respuesta, etiqueta o número
+    let who = m.quoted ? m.quoted.sender : m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : args[0] ? args[0].replace(/[@ .+-]/g, '') + '@s.whatsapp.net' : ''
 
-    if (!who) return m.reply('💡 Usa: unmute @usuario o responde un mensaje.')
+    if (!who) return m.reply(`💡 *Modo de uso:*\n${usedPrefix + command} @usuario o responde a un mensaje.`)
 
-    // Normalizar JID
-    let normWho = normalizeJid(who)
-    let key = Object.keys(chat.mutedUsers).find(jid => normalizeJid(jid) === normWho)
-    if (!key) return m.reply(`[ ! ] @${normWho} no está muteado.`, null, { mentions: [who] })
+    if (!chat.mutedUsers[who]) {
+        return m.reply(`[ ! ] El usuario @${who.split('@')[0]} no está en la lista de silenciados.`, null, { mentions: [who] })
+    }
 
-    delete chat.mutedUsers[key]
+    // Eliminar de la lista de muteados
+    delete chat.mutedUsers[who]
 
-    return m.reply(`[ 🔊 ] *USUARIO DESMUTEADO*\n\n@${normWho} ya puede hablar.`, null, { mentions: [who] })
+    return m.reply(
+        `[ 🔊 ] *USUARIO DESMUTEADO*\n\n@${who.split('@')[0]} ya puede hablar normalmente.`,
+        null,
+        { mentions: [who] }
+    )
 }
 
-// Configuración
 handler.command = /^unmute$/i
 handler.group = true
 handler.admin = true
