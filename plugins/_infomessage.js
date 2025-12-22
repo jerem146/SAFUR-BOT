@@ -15,28 +15,30 @@ const chat = global.db.data.chats[m.chat]
 const users = m.messageStubParameters[0]
 const usuario = await resolveLidToRealJid(m?.sender, conn, m?.chat)
 const groupAdmins = participants.filter(p => p.admin)
-let nombreGrupo = (await conn.groupMetadata(m.chat)).subject
+try {
+let ppgroup = await conn.profilePictureUrl(m.chat, "image") 
+    .catch(_ => "https://files.catbox.moe/9p7y6j.jpg") // si no hay foto usa una por defecto
 
 const rcanal = { 
 contextInfo: { 
 isForwarded: true, 
 forwardedNewsletterMessageInfo: { 
 newsletterJid: channelRD.id, 
-serverMessageId: '', 
+serverMessageId: '',
 newsletterName: channelRD.name 
 }, 
 
 externalAdReply: { 
 title: `𐔌 . ⋮ ᗩ ᐯ I Տ O .ᐟ ֹ ₊ ꒱ — ${nombreGrupo}`, 
-body: textbot, 
-mediaUrl: null, 
-description: null, 
-previewType: "PHOTO", 
-thumbnail: await (await fetch(icono)).buffer(), 
-sourceUrl: redes, 
-mediaType: 1, 
-renderLargerThumbnail: false 
-}, 
+body: textbot,
+mediaUrl: null,
+description: null,
+previewType: "PHOTO",
+thumbnail: await (await fetch(ppgroup)).buffer(), // >>> foto del grupo
+sourceUrl: redes,
+mediaType: 1,
+renderLargerThumbnail: false
+},
 
 mentionedJid: null 
 }}
