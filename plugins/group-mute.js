@@ -1,26 +1,32 @@
 /*
    Archivo: /plugins/group-mute.js
-   Comando: .mute
-   Lógica: Borrado, conteo y expulsión.
 */
 
-let handler = async (m, { conn, usedPrefix, command, isBotAdmin, chat, args }) => {
+let handler = async (m, { conn, usedPrefix, command, chat, args }) => {
     if (!chat.mutedUsers) chat.mutedUsers = {}
 
-    // Obtener usuario por respuesta, etiqueta o número
+    // Obtener el ID correctamente (Normalizado)
     let who = m.quoted ? m.quoted.sender : m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : args[0] ? args[0].replace(/[@ .+-]/g, '') + '@s.whatsapp.net' : ''
+    
+    // Fallback por si el handler no procesó bien la etiqueta
+    if (!who && m.message?.extendedTextMessage?.contextInfo?.mentionedJid) {
+        who = m.message.extendedTextMessage.contextInfo.mentionedJid[0]
+    }
 
     if (!who) return m.reply(`💡 *Modo de uso:*\n${usedPrefix + command} @usuario o responde a un mensaje.`)
+    
+    who = conn.decodeJid(who) // Normalizar ID (Quita el :1, :2 etc)
 
     // Verificar si es administrador
     let groupMetadata = await conn.groupMetadata(m.chat)
-    let participant = groupMetadata.participants.find(u => u.id === who)
+    let participants = groupMetadata.participants
+    let isUserAdmin = participants.some(p => p.id === who && p.admin)
 
-    if (participant?.admin) return m.reply('[ ! ] No puedo mutear a un administrador.')
+    if (isUserAdmin) return m.reply('[ ! ] No puedo mutear a un administrador.')
 
-    if (chat.mutedUsers[who]) return m.reply(`[ ! ] El usuario @${who.split('@')[0]} ya está muteado.`, null, { mentions: [who] })
+    if (chat.mutedUsers[who]) return m.reply(`[ ! ] @${who.split('@')[0]} ya está silenciado.`, null, { mentions: [who] })
 
-    // Registrar en la base de datos
+    // Guardar en base de datos
     chat.mutedUsers[who] = {
         count: 0,
         warned: false,
@@ -29,54 +35,47 @@ let handler = async (m, { conn, usedPrefix, command, isBotAdmin, chat, args }) =
 
     return m.reply(
         `[ 🔇 ] *USUARIO MUTEADO*\n\n` +
-        `@${who.split('@')[0]} fue silenciado.\n\n` +
+        `👤 *Usuario:* @${who.split('@')[0]}\n` +
         `⚠️ *Reglas:*\n` +
         `• Mensajes eliminados automáticamente.\n` +
         `• 6 mensajes → Advertencia.\n` +
-        `• 9 mensajes → Expulsión automática.`,
+        `• 9 mensajes → Expulsión.`,
         null,
         { mentions: [who] }
     )
 }
 
-// MONITOR DE MENSAJES (Se ejecuta siempre)
-handler.before = async function (m, { conn, isBotAdmin, chat, isAdmin }) {
-    if (!m.isGroup || m.fromMe || !isBotAdmin || !chat?.mutedUsers?.[m.sender]) return
+// MONITOR: Se ejecuta antes que los comandos
+handler.before = async function (m, { conn, isBotAdmin, chat }) {
+    if (!m.isGroup || m.fromMe || !isBotAdmin || !chat?.mutedUsers) return false
 
-    // Si el usuario es admin (por si lo ascendieron), no aplicamos el mute
-    if (isAdmin) return
+    const sender = conn.decodeJid(m.sender) // Normalizar el que envía el mensaje
+    if (!chat.mutedUsers[sender]) return false
 
-    let user = chat.mutedUsers[m.sender]
+    // Si está en la lista de muteados, procedemos
+    let user = chat.mutedUsers[sender]
 
     try {
-        // Borrar el mensaje enviado por el muteado
         await conn.sendMessage(m.chat, { delete: m.key })
         user.count++
     } catch {
-        return
+        return false
     }
 
-    // Advertencia al llegar a 6 mensajes
+    // Advertencia
     if (user.count === 6 && !user.warned) {
         user.warned = true
-        await conn.sendMessage(m.chat, {
-            text: `⚠️ *ADVERTENCIA*\n\n@${m.sender.split('@')[0]}, estás muteado. Si envías 3 mensajes más, serás expulsado.`,
-            mentions: [m.sender]
-        })
+        await conn.reply(m.chat, `⚠️ @${sender.split('@')[0]}, estás muteado. Si envías 3 mensajes más serás expulsado.`, null, { mentions: [sender] })
     }
 
-    // Expulsión al llegar a 9 mensajes
+    // Expulsión
     if (user.count >= 9) {
-        await conn.sendMessage(m.chat, {
-            text: `⛔ *EXPULSIÓN AUTOMÁTICA*\n\n@${m.sender.split('@')[0]} fue eliminado por ignorar repetidamente el mute.`,
-            mentions: [m.sender]
-        })
-
-        await conn.groupParticipantsUpdate(m.chat, [m.sender], 'remove')
-        delete chat.mutedUsers[m.sender] // Limpiar registro tras expulsar
+        await conn.reply(m.chat, `⛔ @${sender.split('@')[0]} expulsado por ignorar el mute.`, null, { mentions: [sender] })
+        await conn.groupParticipantsUpdate(m.chat, [sender], 'remove')
+        delete chat.mutedUsers[sender]
     }
-    
-    return // No permitimos que el handler siga procesando este mensaje
+
+    return true // Detener el handler para este mensaje
 }
 
 handler.command = /^mute$/i
