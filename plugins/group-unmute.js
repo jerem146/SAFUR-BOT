@@ -1,22 +1,36 @@
-// ───────── COMANDO UNMUTE ─────────
-if (command === 'unmute') {
-    // Buscar la clave exacta dentro de mutedUsers
-    let userKey = Object.keys(chat.mutedUsers).find(jid => jid === who)
-    
-    if (!userKey) {
-        return m.reply(
-            `[ ! ] El usuario @${who.split('@')[0]} no está muteado.`,
-            null,
-            { mentions: [who] }
-        )
-    }
+/*
+   Archivo: /plugins/group-unmute.js
+   Comando: UNMUTE por etiqueta o respuesta
+*/
 
-    // Eliminarlo correctamente
-    delete chat.mutedUsers[userKey]
+let handler = async (m, { command }) => {
+    let chat = global.db.data.chats[m.chat]
+    if (!chat.mutedUsers) chat.mutedUsers = {}
 
-    return m.reply(
-        `[ 🔊 ] *USUARIO DESMUTEADO*\n\n@${who.split('@')[0]} ya puede hablar.`,
-        null,
-        { mentions: [who] }
-    )
+    // ───────── OBTENER USUARIO (RESPUESTA O ETIQUETA) ─────────
+    let who = null
+    if (m.isGroup) {
+        if (m.quoted?.sender) who = m.quoted.sender
+        else if (m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.length) {
+            who = m.message.extendedTextMessage.contextInfo.mentionedJid[0]
+        }
+    } else who = m.chat
+
+    if (!who) return m.reply(`💡 Usa: ${command} @usuario o responde un mensaje.`)
+
+    // ───────── COMANDO UNMUTE ─────────
+    let key = Object.keys(chat.mutedUsers).find(jid => jid.split(':')[0] === who.split(':')[0])
+    if (!key) return m.reply(`[ ! ] @${who.split('@')[0]} no está muteado.`, null, { mentions: [who] })
+
+    delete chat.mutedUsers[key]
+
+    return m.reply(`[ 🔊 ] *USUARIO DESMUTEADO*\n\n@${who.split('@')[0]} ya puede hablar.`, null, { mentions: [who] })
 }
+
+// ───────── CONFIGURACIÓN ─────────
+handler.command = /^unmute$/i
+handler.group = true
+handler.admin = true
+handler.botAdmin = true
+
+export default handler
