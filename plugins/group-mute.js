@@ -15,10 +15,10 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     )
   }
 
-  let dbUser = global.db.data.users[user]
-  if (!dbUser) global.db.data.users[user] = {}
+  if (!global.db.data.users[user])
+    global.db.data.users[user] = {}
 
-  if (dbUser.muto) {
+  if (global.db.data.users[user].muto) {
     return m.reply(
       `[ ! ] @${user.split('@')[0]} ya está silenciado.`,
       null,
@@ -26,8 +26,8 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     )
   }
 
-  dbUser.muto = true
-  dbUser.muteWarn = 0
+  global.db.data.users[user].muto = true
+  global.db.data.users[user].muteWarn = 0
 
   await conn.reply(
     m.chat,
@@ -37,22 +37,15 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   )
 }
 
-/* 🔥 BLOQUEO REAL DE MENSAJES */
+/* 🔥 BLOQUEO REAL (COMPATIBLE CON TU HANDLER) */
 handler.before = async function (m, { conn, isBotAdmin }) {
   if (!m.isGroup || m.fromMe || !isBotAdmin) return false
 
   let user = global.db.data.users[m.sender]
-  if (!user?.muto) return false
+  if (!user || !user.muto) return false
 
   try {
-    await conn.sendMessage(m.chat, {
-      delete: {
-        remoteJid: m.chat,
-        fromMe: false,
-        id: m.key.id,
-        participant: m.key.participant || m.sender
-      }
-    })
+    await conn.sendMessage(m.chat, { delete: m.key })
   } catch {}
 
   return false
