@@ -1,23 +1,19 @@
 /*
-  MUTE compatible con TU handler
-  Funciona con:
-  - Responder ✅
-  - Etiquetar contacto ✅
-  - Escribir @51999999999 ✅
+  Comando: mute
+  Compatible 100% con tu handler
 */
 
 function getTarget(m) {
-  // 1) responder
+  // 1️⃣ Responder mensaje
   if (m.quoted?.sender) return m.quoted.sender
 
-  // 2) mención real
+  // 2️⃣ Mención real
   if (m.mentionedJid && m.mentionedJid.length) {
     return m.mentionedJid[0]
   }
 
-  // 3) parsear @numero del texto
-  let text = m.text || ""
-  let match = text.match(/@(\d{5,20})/)
+  // 3️⃣ @numero escrito
+  let match = (m.text || "").match(/@(\d{5,20})/)
   if (match) return match[1] + "@s.whatsapp.net"
 
   return null
@@ -32,13 +28,26 @@ let handler = async (m, { conn, isAdmin, isOwner, isBotAdmin }) => {
   if (!who) {
     return conn.reply(
       m.chat,
-      "✦ Responde al mensaje o etiqueta al usuario (@numero).",
+      "✦ Responde al mensaje o etiqueta al usuario.",
       m
     )
   }
 
+  // 🔥 CREAR USUARIO SI NO EXISTE
   let user = global.db.data.users[who]
-  if (!user) return conn.reply(m.chat, "✦ Usuario no encontrado.", m)
+  if (!user) {
+    global.db.data.users[who] = {
+      exp: 0,
+      coin: 0,
+      bank: 0,
+      level: 0,
+      health: 100,
+      warn: 0,
+      muto: false,
+      deleteCount: 0
+    }
+    user = global.db.data.users[who]
+  }
 
   if (user.muto) {
     return conn.reply(
