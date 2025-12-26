@@ -1,18 +1,7 @@
-/*
-  Comando: mute
-  Compatible 100% con tu handler
-*/
-
 function getTarget(m) {
-  // 1️⃣ Responder mensaje
   if (m.quoted?.sender) return m.quoted.sender
+  if (m.mentionedJid?.length) return m.mentionedJid[0]
 
-  // 2️⃣ Mención real
-  if (m.mentionedJid && m.mentionedJid.length) {
-    return m.mentionedJid[0]
-  }
-
-  // 3️⃣ @numero escrito
   let match = (m.text || "").match(/@(\d{5,20})/)
   if (match) return match[1] + "@s.whatsapp.net"
 
@@ -25,15 +14,8 @@ let handler = async (m, { conn, isAdmin, isOwner, isBotAdmin }) => {
   if (!isBotAdmin) return
 
   let who = getTarget(m)
-  if (!who) {
-    return conn.reply(
-      m.chat,
-      "✦ Responde al mensaje o etiqueta al usuario.",
-      m
-    )
-  }
+  if (!who) return conn.reply(m.chat, "✦ Responde o etiqueta al usuario.", m)
 
-  // 🔥 CREAR USUARIO SI NO EXISTE
   let user = global.db.data.users[who]
   if (!user) {
     global.db.data.users[who] = {
