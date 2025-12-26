@@ -13,10 +13,15 @@ let handler = async (m, {
 
   if (!chat.mutedUsers) chat.mutedUsers = {}
 
-  // obtener usuario
+  // 🔑 obtener usuario (100% compatible con tu handler)
+  const context =
+    m.msg?.contextInfo ||
+    m.message?.extendedTextMessage?.contextInfo ||
+    {}
+
   let who =
     m.quoted?.sender ||
-    m.mentionedJid?.[0]
+    context.mentionedJid?.[0]
 
   if (!who) {
     return m.reply(
@@ -24,7 +29,7 @@ let handler = async (m, {
     )
   }
 
-  // normalizar JID (CLAVE)
+  // NORMALIZAR JID (CLAVE)
   who = conn.decodeJid(who)
 
   // no admins
@@ -33,7 +38,6 @@ let handler = async (m, {
     return m.reply('[ ! ] No puedo mutear a un administrador.')
   }
 
-  // evitar mutes fantasmas
   if (chat.mutedUsers[who]) {
     return m.reply(
       `[ ! ] @${who.split('@')[0]} ya está silenciado.`,
@@ -54,7 +58,7 @@ let handler = async (m, {
   )
 }
 
-// monitor
+/* 🔍 MONITOR (MISMO ARCHIVO, NO ES OTRO) */
 handler.before = async function (m, {
   conn,
   chat,
@@ -86,12 +90,6 @@ handler.before = async function (m, {
   }
 
   if (user.count >= 9) {
-    await conn.reply(
-      m.chat,
-      `⛔ @${sender.split('@')[0]} eliminado por ignorar el mute.`,
-      null,
-      { mentions: [sender] }
-    )
     await conn.groupParticipantsUpdate(m.chat, [sender], 'remove')
     delete chat.mutedUsers[sender]
   }
