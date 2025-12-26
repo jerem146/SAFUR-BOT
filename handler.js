@@ -49,6 +49,8 @@ if (!("commands" in user) || !isNumber(user.commands)) user.commands = 0
 if (!("afk" in user) || !isNumber(user.afk)) user.afk = -1
 if (!("afkReason" in user)) user.afkReason = ""
 if (!("warn" in user) || !isNumber(user.warn)) user.warn = 0
+if (!("muto" in user)) user.muto = false
+if (!("deleteCount" in user) || !isNumber(user.deleteCount)) user.deleteCount = 0
 } else global.db.data.users[m.sender] = {
 name: m.name,
 exp: 0,
@@ -68,7 +70,9 @@ bannedReason: "",
 commands: 0,
 afk: -1,
 afkReason: "",
-warn: 0
+warn: 0,
+muto: false,
+deleteCount: 0
 }
 let chat = global.db.data.chats[m.chat]
 if (typeof chat !== "object") global.db.data.chats[m.chat] = {}
@@ -124,6 +128,34 @@ const isROwner = [...global.owner.map((number) => number)].map(v => v.replace(/[
 const isOwner = isROwner || m.fromMe
 const isPrems = isROwner || global.prems.map(v => v.replace(/[^0-9]/g, "") + "@s.whatsapp.net").includes(m.sender) || user.premium == true
 const isOwners = [this.user.jid, ...global.owner.map((number) => number + "@s.whatsapp.net")].includes(m.sender)
+
+if (m.isBaileys) return
+
+// --- LÓGICA DE DETECCIÓN PARA MUTEADOS ---
+const groupMetadata = m.isGroup ? { ...(conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}), ...(((conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants) && { participants: ((conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants || []).map(p => ({ ...p, id: p.jid, jid: p.jid, lid: p.lid })) }) } : {}
+const participants = ((m.isGroup ? groupMetadata.participants : []) || []).map(participant => ({ id: participant.jid, jid: participant.jid, lid: participant.lid, admin: participant.admin }))
+const userGroup = (m.isGroup ? participants.find((u) => conn.decodeJid(u.jid) === m.sender) : {}) || {}
+const botGroup = (m.isGroup ? participants.find((u) => conn.decodeJid(u.jid) == this.user.jid) : {}) || {}
+const isAdmin = userGroup?.admin == "admin" || userGroup?.admin == "superadmin" || false
+const isBotAdmin = botGroup?.admin || false
+
+if (m.isGroup && user.muto && !isAdmin && !isOwner && isBotAdmin) {
+    await this.sendMessage(m.chat, { delete: m.key })
+    user.deleteCount++
+    if (user.deleteCount === 7) {
+        await this.reply(m.chat, `⚠️ *@${m.sender.split`@`[0]}*, estás muteado. Llevas 7 mensajes borrados. A los 11 serás eliminado automáticamente.`, null, { mentions: [m.sender] })
+    }
+    if (user.deleteCount >= 11) {
+        await this.reply(m.chat, `🚫 *@${m.sender.split`@`[0]}* fue eliminado por enviar mensajes estando muteado.`, null, { mentions: [m.sender] })
+        user.muto = false
+        user.deleteCount = 0
+        await this.groupParticipantsUpdate(m.chat, [m.sender], 'remove')
+        return
+    }
+    return // Detiene el procesamiento para este usuario
+}
+// --- FIN LÓGICA MUTE ---
+
 if (opts["queque"] && m.text && !(isPrems)) {
 const queque = this.msgqueque, time = 1000 * 5
 const previousID = queque[queque.length - 1]
@@ -133,17 +165,10 @@ if (queque.indexOf(previousID) === -1) clearInterval(this)
 await delay(time)
 }, time)
 }
- 
-if (m.isBaileys) return
+
 m.exp += Math.ceil(Math.random() * 10)
 let usedPrefix
-const groupMetadata = m.isGroup ? { ...(conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}), ...(((conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants) && { participants: ((conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants || []).map(p => ({ ...p, id: p.jid, jid: p.jid, lid: p.lid })) }) } : {}
-const participants = ((m.isGroup ? groupMetadata.participants : []) || []).map(participant => ({ id: participant.jid, jid: participant.jid, lid: participant.lid, admin: participant.admin }))
-const userGroup = (m.isGroup ? participants.find((u) => conn.decodeJid(u.jid) === m.sender) : {}) || {}
-const botGroup = (m.isGroup ? participants.find((u) => conn.decodeJid(u.jid) == this.user.jid) : {}) || {}
 const isRAdmin = userGroup?.admin == "superadmin" || false
-const isAdmin = isRAdmin || userGroup?.admin == "admin" || false
-const isBotAdmin = botGroup?.admin || false
 
 const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), "./plugins")
 for (const name in global.plugins) {
@@ -354,7 +379,7 @@ group: `『✦』El comando *${comando}* solo puede ser usado en grupos.`,
 admin: `『✦』El comando *${comando}* solo puede ser usado por los administradores del grupo.`,
 botAdmin: `『✦』Para ejecutar el comando *${comando}* debo ser administrador del grupo.`
 }[type]
-if (msg) return conn.reply(m.chat, msg, m, rcanal).then(_ => m.react('✖️'))
+if (msg) return conn.reply(m.chat, msg, m).then(_ => m.react('✖️'))
 }
 let file = global.__filename(import.meta.url, true)
 watchFile(file, async () => {
