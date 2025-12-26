@@ -6,25 +6,25 @@ let handler = async (m, { conn, text, command }) => {
         who = m.chat
     }
     
-    if (!who) throw `*⚠️ Etiqueta o responde al mensaje de alguien para usar .${command}*`
+    if (!who) throw `*⚠️ Etiqueta o responde al mensaje de alguien.*`
     
-    // Inicializar si el usuario no existe en la base de datos
-    if (!global.db.data.users[who]) global.db.data.users[who] = { muto: false, deleteCount: 0 }
+    // Forzar inicialización en la DB para que el handler lo reconozca
+    if (!global.db.data.users[who]) global.db.data.users[who] = { name: await conn.getName(who), muto: false, deleteCount: 0 }
     
     let user = global.db.data.users[who]
 
     if (command === 'mute') {
-        if (user.muto) throw `*El usuario ya está muteado.*`
+        if (user.muto) throw `*Este usuario ya está muteado.*`
         user.muto = true
         user.deleteCount = 0
-        await conn.reply(m.chat, `✅ *@${who.split('@')[0]}* ha sido muteado.\n\nCada mensaje que envíe será borrado. Si llega a 11 mensajes borrados, será expulsado.`, m, { mentions: [who] })
+        await conn.reply(m.chat, `✅ *@${who.split`@`[0]}* ha sido muteado.\n\nSus mensajes serán borrados automáticamente. Al mensaje 7 recibirá advertencia y al 11 será expulsado.`, m, { mentions: [who] })
     }
 
     if (command === 'unmute') {
-        if (!user.muto) throw `*El usuario no está muteado.*`
+        if (!user.muto) throw `*Este usuario no estaba muteado.*`
         user.muto = false
         user.deleteCount = 0
-        await conn.reply(m.chat, `✅ *@${who.split('@')[0]}* ha sido desmuteado.`, m, { mentions: [who] })
+        await conn.reply(m.chat, `✅ *@${who.split`@`[0]}* ya puede hablar libremente.`, m, { mentions: [who] })
     }
 }
 handler.help = ['mute', 'unmute']
