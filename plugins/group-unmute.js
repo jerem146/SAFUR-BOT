@@ -1,50 +1,52 @@
 /*
-  Archivo: /plugins/group-unmute.js
-  Comando: .unmute
+  Comando: unmute
+  Compatible con tu handler (user.muto)
 */
 
-let handler = async (m, {
-  conn,
-  chat,
-  participants,
-  usedPrefix,
-  command
-}) => {
+let handler = async (m, { conn, isAdmin, isOwner }) => {
+  if (!m.isGroup) return
+  if (!isAdmin && !isOwner) return
 
-  if (!chat.mutedUsers) chat.mutedUsers = {}
-
+  // usuario objetivo
   let who =
     m.quoted?.sender ||
     m.mentionedJid?.[0]
 
   if (!who) {
-    return m.reply(
-      `💡 *Uso correcto:*\n${usedPrefix + command} @usuario\nO responde a su mensaje.`
+    return conn.reply(
+      m.chat,
+      '✦ Responde o menciona al usuario que deseas desmutear.',
+      m
     )
   }
 
-  who = conn.decodeJid(who)
+  let user = global.db.data.users[who]
+  if (!user) return
 
-  if (!chat.mutedUsers[who]) {
-    return m.reply(
-      `[ ! ] @${who.split('@')[0]} no está silenciado.`,
-      null,
+  // no está muteado
+  if (!user.muto) {
+    return conn.reply(
+      m.chat,
+      `✦ @${who.split('@')[0]} no está muteado.`,
+      m,
       { mentions: [who] }
     )
   }
 
-  delete chat.mutedUsers[who]
+  // desactivar mute
+  user.muto = false
+  user.deleteCount = 0
 
-  return m.reply(
-    `[ 🔊 ] *USUARIO DESMUTEADO*\n\n@${who.split('@')[0]} puede escribir nuevamente.`,
-    null,
+  await conn.reply(
+    m.chat,
+    `🔊 @${who.split('@')[0]} fue desmuteado.`,
+    m,
     { mentions: [who] }
   )
 }
 
-handler.command = /^unmute$/i
+handler.command = ['unmute']
 handler.group = true
 handler.admin = true
-handler.botAdmin = true
 
 export default handler
