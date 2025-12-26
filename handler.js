@@ -132,25 +132,49 @@ const isOwners = [this.user.jid, ...global.owner.map((number) => number + "@s.wh
 if (m.isBaileys) return
 
 // --- LÓGICA DE MUTE (BORRADO + ADVERTENCIA + KICK) ---
-const groupMetadata = m.isGroup ? { ...(conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}), ...(((conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants) && { participants: ((conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants || []).map(p => ({ ...p, id: p.jid, jid: p.jid, lid: p.lid })) }) } : {}
-const participants = ((m.isGroup ? groupMetadata.participants : []) || []).map(participant => ({ id: participant.jid, jid: participant.jid, lid: participant.lid, admin: participant.admin }))
-const userGroup = (m.isGroup ? participants.find((u) => conn.decodeJid(u.jid) === m.sender) : {}) || {}
-const botGroup = (m.isGroup ? participants.find((u) => conn.decodeJid(u.jid) == this.user.jid) : {}) || {}
-const isAdmin = userGroup?.admin == "admin" || userGroup?.admin == "superadmin" || false
-const isBotAdmin = botGroup?.admin || false
+const groupMetadata = m.isGroup
+  ? await this.groupMetadata(m.chat).catch(() => null)
+  : null
+
+const participants = (groupMetadata?.participants || []).map(p => ({
+  jid: p.id || p.jid,
+  admin: p.admin
+}))
+
+const userGroup = participants.find(u => u.jid === m.sender) || {}
+const botGroup = participants.find(u => u.jid === this.user.jid) || {}
+
+const isAdmin = userGroup.admin === "admin" || userGroup.admin === "superadmin"
+const isBotAdmin = !!botGroup.admin
 
 if (m.isGroup && user.muto && !isAdmin && !isOwner && isBotAdmin) {
-await this.sendMessage(m.chat, { delete: m.key })
-user.deleteCount = (user.deleteCount || 0) + 1
-if (user.deleteCount === 7) {
-await this.reply(m.chat, ⚠️ *@${m.sender.split@[0]}*, advertencia: estás muteado y llevas 7 mensajes borrados. A los 11 serás eliminado., null, { mentions: [m.sender] })
-}
-if (user.deleteCount >= 11) {
-await this.reply(m.chat, 🚫 *@${m.sender.split@[0]}* fue eliminado por ignorar el mute., null, { mentions: [m.sender] })
-user.muto = false
-user.deleteCount = 0
-await this.groupParticipantsUpdate(m.chat, [m.sender], 'remove')
-return
+  await this.sendMessage(m.chat, { delete: m.key })
+
+  user.deleteCount = (user.deleteCount || 0) + 1
+
+  if (user.deleteCount === 7) {
+    await this.reply(
+      m.chat,
+      `⚠️ *@${m.sender.split("@")[0]}*, advertencia: estás muteado y llevas 7 mensajes borrados.\nA los 11 serás eliminado.`,
+      null,
+      { mentions: [m.sender] }
+    )
+  }
+
+  if (user.deleteCount >= 11) {
+    await this.reply(
+      m.chat,
+      `🚫 *@${m.sender.split("@")[0]}* fue eliminado por ignorar el mute.`,
+      null,
+      { mentions: [m.sender] }
+    )
+
+    user.muto = false
+    user.deleteCount = 0
+    await this.groupParticipantsUpdate(m.chat, [m.sender], "remove")
+  }
+
+  return
 }
 
 if (opts["queque"] && m.text && !(isPrems)) {
