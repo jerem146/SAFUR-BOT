@@ -152,8 +152,7 @@ user.deleteCount = 0
 await this.groupParticipantsUpdate(m.chat, [m.sender], 'remove')
 return
 }
-return
-}
+
 if (opts["queque"] && m.text && !(isPrems)) {
 const queque = this.msgqueque, time = 1000 * 5
 const previousID = queque[queque.length - 1]
