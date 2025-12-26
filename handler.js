@@ -144,11 +144,23 @@ const participants = (groupMetadata?.participants || []).map(p => ({
 const userGroup = participants.find(u => u.jid === m.sender) || {}
 const botGroup = participants.find(u => u.jid === this.user.jid) || {}
 
-const isAdmin = userGroup.admin === "admin" || userGroup.admin === "superadmin"
+const isAdmin =
+  userGroup.admin === "admin" ||
+  userGroup.admin === "superadmin"
+
 const isBotAdmin = !!botGroup.admin
 
 if (m.isGroup && user.muto && !isAdmin && !isOwner && isBotAdmin) {
-  await this.sendMessage(m.chat, { delete: m.key })
+
+  // ✅ BORRADO REAL EN GRUPOS (FORMA CORRECTA)
+  await this.sendMessage(m.chat, {
+    delete: {
+      remoteJid: m.chat,
+      fromMe: false,
+      id: m.key.id,
+      participant: m.sender
+    }
+  })
 
   user.deleteCount = (user.deleteCount || 0) + 1
 
