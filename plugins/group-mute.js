@@ -13,7 +13,7 @@ let handler = async (m, {
 
   if (!chat.mutedUsers) chat.mutedUsers = {}
 
-  // 🔎 obtener usuario (TU smsg ya llena esto bien)
+  // obtener usuario
   let who =
     m.quoted?.sender ||
     m.mentionedJid?.[0]
@@ -24,21 +24,24 @@ let handler = async (m, {
     )
   }
 
-  // 🔑 normalización ÚNICA
+  // normalizar JID (CLAVE)
   who = conn.decodeJid(who)
 
-  // 🛑 no admins
+  // no admins
   let target = participants.find(p => conn.decodeJid(p.id) === who)
   if (target?.admin) {
     return m.reply('[ ! ] No puedo mutear a un administrador.')
   }
 
-  // 🧹 limpiar mutes rotos (evita "ya está muteado" falso)
+  // evitar mutes fantasmas
   if (chat.mutedUsers[who]) {
-    delete chat.mutedUsers[who]
+    return m.reply(
+      `[ ! ] @${who.split('@')[0]} ya está silenciado.`,
+      null,
+      { mentions: [who] }
+    )
   }
 
-  // registrar mute
   chat.mutedUsers[who] = {
     count: 0,
     warned: false
@@ -50,3 +53,55 @@ let handler = async (m, {
     { mentions: [who] }
   )
 }
+
+// monitor
+handler.before = async function (m, {
+  conn,
+  chat,
+  isBotAdmin
+}) {
+  if (!m.isGroup || m.fromMe || !isBotAdmin) return false
+  if (!chat?.mutedUsers) return false
+
+  const sender = conn.decodeJid(m.sender)
+  if (!chat.mutedUsers[sender]) return false
+
+  const user = chat.mutedUsers[sender]
+
+  try {
+    await conn.sendMessage(m.chat, { delete: m.key })
+    user.count++
+  } catch {
+    return false
+  }
+
+  if (user.count === 6 && !user.warned) {
+    user.warned = true
+    await conn.reply(
+      m.chat,
+      `⚠️ @${sender.split('@')[0]} estás muteado.`,
+      null,
+      { mentions: [sender] }
+    )
+  }
+
+  if (user.count >= 9) {
+    await conn.reply(
+      m.chat,
+      `⛔ @${sender.split('@')[0]} eliminado por ignorar el mute.`,
+      null,
+      { mentions: [sender] }
+    )
+    await conn.groupParticipantsUpdate(m.chat, [sender], 'remove')
+    delete chat.mutedUsers[sender]
+  }
+
+  return true
+}
+
+handler.command = /^mute$/i
+handler.group = true
+handler.admin = true
+handler.botAdmin = true
+
+export default handler
