@@ -1,6 +1,6 @@
 /*
   Comando: mute
-  Compatible con tu handler (user.muto + deleteCount)
+  Funciona con responder y etiquetar (handler-compatible)
 */
 
 let handler = async (m, { conn, isAdmin, isOwner, isBotAdmin }) => {
@@ -8,15 +8,29 @@ let handler = async (m, { conn, isAdmin, isOwner, isBotAdmin }) => {
   if (!isAdmin && !isOwner) return
   if (!isBotAdmin) return
 
-  // usuario objetivo
-  let who =
-    m.quoted?.sender ||
-    m.mentionedJid?.[0]
+  let who = null
+
+  // 1️⃣ responder mensaje
+  if (m.quoted?.sender) {
+    who = m.quoted.sender
+  }
+
+  // 2️⃣ mencionar normal
+  else if (m.mentionedJid && m.mentionedJid.length) {
+    who = m.mentionedJid[0]
+  }
+
+  // 3️⃣ mención desde contextInfo (FIX REAL)
+  else if (
+    m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.length
+  ) {
+    who = m.message.extendedTextMessage.contextInfo.mentionedJid[0]
+  }
 
   if (!who) {
     return conn.reply(
       m.chat,
-      '✦ Responde o menciona al usuario que deseas mutear.',
+      '✦ Responde o etiqueta al usuario que deseas mutear.',
       m
     )
   }
@@ -24,7 +38,6 @@ let handler = async (m, { conn, isAdmin, isOwner, isBotAdmin }) => {
   let user = global.db.data.users[who]
   if (!user) return
 
-  // ya muteado
   if (user.muto) {
     return conn.reply(
       m.chat,
@@ -34,7 +47,6 @@ let handler = async (m, { conn, isAdmin, isOwner, isBotAdmin }) => {
     )
   }
 
-  // activar mute
   user.muto = true
   user.deleteCount = 0
 
