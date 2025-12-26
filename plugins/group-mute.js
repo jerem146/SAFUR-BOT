@@ -1,26 +1,15 @@
 let handler = async (m, { conn, text, command }) => {
     let who
     if (m.isGroup) {
-        // Primero intentamos por mención o respuesta (esto captura el ID correcto ya sea LID o normal)
-        who = m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : false
-        
-        // Si no hay mención ni respuesta, intentamos por texto
-        if (!who && text) {
-            let clean = text.replace(/[^0-9]/g, '')
-            if (clean) who = clean + '@s.whatsapp.net'
-        }
+        who = m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : text ? text.replace(/[^0-9]/g, '') + '@s.whatsapp.net' : false
     } else {
         who = m.chat
     }
     
     if (!who) throw `*⚠️ Etiqueta o responde al mensaje de alguien para usar .${command}*`
     
-    // Inicializar usuario si no existe en la base de datos (con LID o ID normal)
-    if (!global.db.data.users[who]) global.db.data.users[who] = {
-        name: await conn.getName(who),
-        muto: false,
-        deleteCount: 0
-    }
+    // Inicializar si el usuario no existe en la base de datos
+    if (!global.db.data.users[who]) global.db.data.users[who] = { muto: false, deleteCount: 0 }
     
     let user = global.db.data.users[who]
 
@@ -28,7 +17,7 @@ let handler = async (m, { conn, text, command }) => {
         if (user.muto) throw `*El usuario ya está muteado.*`
         user.muto = true
         user.deleteCount = 0
-        await conn.reply(m.chat, `✅ *@${who.split('@')[0]}* ha sido muteado.\n\nSus mensajes serán borrados automáticamente.\nAdvertencia a los 7 y eliminación a los 11.`, m, { mentions: [who] })
+        await conn.reply(m.chat, `✅ *@${who.split('@')[0]}* ha sido muteado.\n\nCada mensaje que envíe será borrado. Si llega a 11 mensajes borrados, será expulsado.`, m, { mentions: [who] })
     }
 
     if (command === 'unmute') {
