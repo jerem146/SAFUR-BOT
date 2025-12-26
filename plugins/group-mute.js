@@ -13,7 +13,6 @@ let handler = async (m, {
 
   if (!chat.mutedUsers) chat.mutedUsers = {}
 
-  // 🔑 obtener usuario (100% compatible con tu handler)
   const context =
     m.msg?.contextInfo ||
     m.message?.extendedTextMessage?.contextInfo ||
@@ -29,8 +28,16 @@ let handler = async (m, {
     )
   }
 
-  // NORMALIZAR JID (CLAVE)
+  // 🔑 normalizar
   who = conn.decodeJid(who)
+  const num = who.split('@')[0]
+
+  // 🧹 LIMPIEZA TOTAL DE MUTES FANTASMA
+  for (let jid in chat.mutedUsers) {
+    if (jid.startsWith(num)) {
+      delete chat.mutedUsers[jid]
+    }
+  }
 
   // no admins
   let target = participants.find(p => conn.decodeJid(p.id) === who)
@@ -38,27 +45,20 @@ let handler = async (m, {
     return m.reply('[ ! ] No puedo mutear a un administrador.')
   }
 
-  if (chat.mutedUsers[who]) {
-    return m.reply(
-      `[ ! ] @${who.split('@')[0]} ya está silenciado.`,
-      null,
-      { mentions: [who] }
-    )
-  }
-
+  // registrar mute REAL
   chat.mutedUsers[who] = {
     count: 0,
     warned: false
   }
 
   return m.reply(
-    `[ 🔇 ] *USUARIO MUTEADO*\n\n@${who.split('@')[0]} fue silenciado.`,
+    `[ 🔇 ] *USUARIO MUTEADO*\n\n@${num} fue silenciado.`,
     null,
     { mentions: [who] }
   )
 }
 
-/* 🔍 MONITOR (MISMO ARCHIVO, NO ES OTRO) */
+/* 🔍 MONITOR */
 handler.before = async function (m, {
   conn,
   chat,
