@@ -131,30 +131,32 @@ const isOwners = [this.user.jid, ...global.owner.map((number) => number + "@s.wh
 
 if (m.isBaileys) return
 
-// --- LÓGICA DE DETECCIÓN PARA MUTEADOS ---
+m.exp += Math.ceil(Math.random() * 10)
+let usedPrefix
 const groupMetadata = m.isGroup ? { ...(conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}), ...(((conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants) && { participants: ((conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants || []).map(p => ({ ...p, id: p.jid, jid: p.jid, lid: p.lid })) }) } : {}
 const participants = ((m.isGroup ? groupMetadata.participants : []) || []).map(participant => ({ id: participant.jid, jid: participant.jid, lid: participant.lid, admin: participant.admin }))
 const userGroup = (m.isGroup ? participants.find((u) => conn.decodeJid(u.jid) === m.sender) : {}) || {}
 const botGroup = (m.isGroup ? participants.find((u) => conn.decodeJid(u.jid) == this.user.jid) : {}) || {}
-const isAdmin = userGroup?.admin == "admin" || userGroup?.admin == "superadmin" || false
+const isRAdmin = userGroup?.admin == "superadmin" || false
+const isAdmin = isRAdmin || userGroup?.admin == "admin" || false
 const isBotAdmin = botGroup?.admin || false
 
+// ⚠️ LÓGICA DE MUTE PERSONAL (BORRAR MENSAJES Y EXPULSAR)
 if (m.isGroup && user.muto && !isAdmin && !isOwner && isBotAdmin) {
     await this.sendMessage(m.chat, { delete: m.key })
-    user.deleteCount++
+    user.deleteCount = (user.deleteCount || 0) + 1
     if (user.deleteCount === 7) {
         await this.reply(m.chat, `⚠️ *@${m.sender.split`@`[0]}*, estás muteado. Llevas 7 mensajes borrados. A los 11 serás eliminado automáticamente.`, null, { mentions: [m.sender] })
     }
     if (user.deleteCount >= 11) {
-        await this.reply(m.chat, `🚫 *@${m.sender.split`@`[0]}* fue eliminado por enviar mensajes estando muteado.`, null, { mentions: [m.sender] })
+        await this.reply(m.chat, `🚫 *@${m.sender.split`@`[0]}* eliminado por enviar mensajes estando muteado.`, null, { mentions: [m.sender] })
         user.muto = false
         user.deleteCount = 0
         await this.groupParticipantsUpdate(m.chat, [m.sender], 'remove')
         return
     }
-    return // Detiene el procesamiento para este usuario
+    return 
 }
-// --- FIN LÓGICA MUTE ---
 
 if (opts["queque"] && m.text && !(isPrems)) {
 const queque = this.msgqueque, time = 1000 * 5
@@ -165,10 +167,6 @@ if (queque.indexOf(previousID) === -1) clearInterval(this)
 await delay(time)
 }, time)
 }
-
-m.exp += Math.ceil(Math.random() * 10)
-let usedPrefix
-const isRAdmin = userGroup?.admin == "superadmin" || false
 
 const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), "./plugins")
 for (const name in global.plugins) {
@@ -259,8 +257,7 @@ if (primaryBotConn && primaryBotInGroup || global.db.data.chats[m.chat].primaryB
 throw !1
 } else {
 global.db.data.chats[m.chat].primaryBot = null
-}} else {
-}
+}}
 
 if (!isAccept) continue
 m.plugin = name
@@ -275,71 +272,22 @@ await m.reply(aviso)
 return
 }}
 if (m.text && user.banned && !isROwner) {
-const mensaje = `ꕥ Estas baneado/a, no puedes usar comandos en este bot!\n\n> ● *Razón ›* ${user.bannedReason}\n\n> ● Si este Bot es cuenta oficial y tienes evidencia que respalde que este mensaje es un error, puedes exponer tu caso con un moderador.`.trim()
+const mensaje = `ꕥ Estas baneado/a, no puedes usar comandos en este bot!\n\n> ● *Razón ›* ${user.bannedReason}`.trim()
 if (!primaryBotId || primaryBotId === botId) {
 m.reply(mensaje)
 return
 }}}
-if (!isOwners && !m.chat.endsWith('g.us') && !/code|p|ping|qr|estado|status|infobot|botinfo|report|reportar|invite|join|logout|suggest|help|menu/gim.test(m.text)) return
-const adminMode = chat.modoadmin || false
 const wa = plugin.botAdmin || plugin.admin || plugin.group || plugin || noPrefix || pluginPrefix || m.text.slice(0, 1) === pluginPrefix || plugin.command
-if (adminMode && !isOwner && m.isGroup && !isAdmin && wa) return
-if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) {
-fail("owner", m, this)
-continue
-}
-if (plugin.rowner && !isROwner) {
-fail("rowner", m, this)
-continue
-}
-if (plugin.owner && !isOwner) {
-fail("owner", m, this)
-continue
-}
-if (plugin.premium && !isPrems) {
-fail("premium", m, this)
-continue
-}
-if (plugin.group && !m.isGroup) {
-fail("group", m, this)
-continue
-} 
-if (plugin.botAdmin && !isBotAdmin) {
-fail("botAdmin", m, this)
-continue
-} 
-if (plugin.admin && !isAdmin) {
-fail("admin", m, this)
-continue
-}
+if (chat.modoadmin && !isOwner && m.isGroup && !isAdmin && wa) return
+if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) { fail("owner", m, this); continue }
+if (plugin.rowner && !isROwner) { fail("rowner", m, this); continue }
+if (plugin.owner && !isOwner) { fail("owner", m, this); continue }
+if (plugin.premium && !isPrems) { fail("premium", m, this); continue }
+if (plugin.group && !m.isGroup) { fail("group", m, this); continue } 
+if (plugin.botAdmin && !isBotAdmin) { fail("botAdmin", m, this); continue } 
+if (plugin.admin && !isAdmin) { fail("admin", m, this); continue }
 m.isCommand = true
-m.exp += plugin.exp ? parseInt(plugin.exp) : 10
-let extra = {
-match,
-usedPrefix,
-noPrefix,
-_args,
-args,
-command,
-text,
-conn: this,
-participants,
-groupMetadata,
-userGroup,
-botGroup,
-isROwner,
-isOwner,
-isRAdmin,
-isAdmin,
-isBotAdmin,
-isPrems,
-chatUpdate,
-__dirname: ___dirname,
-__filename,
-user,
-chat,
-settings
-}
+let extra = { match, usedPrefix, noPrefix, _args, args, command, text, conn: this, participants, groupMetadata, userGroup, botGroup, isROwner, isOwner, isRAdmin, isAdmin, isBotAdmin, isPrems, chatUpdate, __dirname: ___dirname, __filename, user, chat, settings }
 try {
 await plugin.call(this, m, extra)
 } catch (err) {
@@ -349,38 +297,31 @@ console.error(err)
 if (typeof plugin.after === "function") {
 try {
 await plugin.after.call(this, m, extra)
-} catch (err) {
-console.error(err)
+} catch (err) { console.error(err) }
 }}}}}} catch (err) {
 console.error(err)
 } finally {
 if (opts["queque"] && m.text) {
 const quequeIndex = this.msgqueque.indexOf(m.id || m.key.id)
-if (quequeIndex !== -1)
-this.msgqueque.splice(quequeIndex, 1)
+if (quequeIndex !== -1) this.msgqueque.splice(quequeIndex, 1)
 }
-let user = global.db.data.users[m.sender]
-if (m) {
-if (m.sender && user) {
-user.exp += m.exp
-}}
+if (m && m.sender && user) user.exp += m.exp
 try {
 if (!opts["noprint"]) await (await import("./lib/print.js")).default(m, this)
-} catch (err) {
-console.warn(err)
-console.log(m.message)
-}}}
+} catch (err) { console.warn(err) }
+}}
 
 global.dfail = (type, m, conn) => {
 const msg = {
-rowner: `『✦』El comando *${comando}* solo puede ser usado por los creadores del bot.`,
-premium: `『✦』El comando *${comando}* solo puede ser usado por los usuarios premium.`,
+rowner: `『✦』El comando *${comando}* solo puede ser usado por los creadores.`,
+premium: `『✦』El comando *${comando}* solo es para usuarios premium.`,
 group: `『✦』El comando *${comando}* solo puede ser usado en grupos.`,
-admin: `『✦』El comando *${comando}* solo puede ser usado por los administradores del grupo.`,
-botAdmin: `『✦』Para ejecutar el comando *${comando}* debo ser administrador del grupo.`
+admin: `『✦』El comando *${comando}* solo es para administradores.`,
+botAdmin: `『✦』Debo ser administrador para ejecutar *${comando}*.`
 }[type]
 if (msg) return conn.reply(m.chat, msg, m).then(_ => m.react('✖️'))
 }
+
 let file = global.__filename(import.meta.url, true)
 watchFile(file, async () => {
 unwatchFile(file)
