@@ -1,73 +1,58 @@
 /*
-  Archivo: /plugins/group-mute.js
+  Archivo: /plugins/mute.js
   Comando: .mute
 */
 
-const normalize = jid => jid?.split(':')[0]
+let handler = async (m, { conn, usedPrefix, command }) => {
 
-let handler = async (m, {
-  conn,
-  chat,
-  participants,
-  usedPrefix,
-  command
-}) => {
+  let user =
+    m.mentionedJid?.[0] ||
+    m.quoted?.sender
 
-  if (!chat.mutedUsers) chat.mutedUsers = {}
-
-  const context =
-    m.msg?.contextInfo ||
-    m.message?.extendedTextMessage?.contextInfo ||
-    {}
-
-  let who =
-    m.quoted?.sender ||
-    context.mentionedJid?.[0]
-
-  if (!who) {
+  if (!user) {
     return m.reply(
       `💡 *Uso correcto:*\n${usedPrefix + command} @usuario\nO responde a su mensaje.`
     )
   }
 
-  who = normalize(conn.decodeJid(who))
-  const num = who.split('@')[0]
+  let dbUser = global.db.data.users[user]
+  if (!dbUser) global.db.data.users[user] = {}
 
-  let target = participants.find(p =>
-    normalize(conn.decodeJid(p.id)) === who
-  )
-  if (target?.admin) return m.reply('[ ! ] No puedo mutear a un administrador.')
+  if (dbUser.muto) {
+    return m.reply(
+      `[ ! ] @${user.split('@')[0]} ya está silenciado.`,
+      null,
+      { mentions: [user] }
+    )
+  }
 
-  chat.mutedUsers[who] = { count: 0 }
+  dbUser.muto = true
+  dbUser.muteWarn = 0
 
-  return m.reply(
-    `[ 🔇 ] *USUARIO MUTEADO*\n\n@${num} fue silenciado.`,
-    null,
-    { mentions: [who] }
+  await conn.reply(
+    m.chat,
+    `[ 🔇 ] @${user.split('@')[0]} fue silenciado.`,
+    m,
+    { mentions: [user] }
   )
 }
 
-/* 🔥 MONITOR REAL */
-handler.before = async function (m, {
-  conn,
-  chat,
-  isBotAdmin
-}) {
+/* 🔥 BLOQUEO REAL DE MENSAJES */
+handler.before = async function (m, { conn, isBotAdmin }) {
   if (!m.isGroup || m.fromMe || !isBotAdmin) return false
-  if (!chat?.mutedUsers) return false
 
-  const sender = normalize(m.sender)
-  if (!chat.mutedUsers[sender]) return false
-
-  const key = {
-    remoteJid: m.chat,
-    fromMe: false,
-    id: m.key.id,
-    participant: m.key.participant || m.sender
-  }
+  let user = global.db.data.users[m.sender]
+  if (!user?.muto) return false
 
   try {
-    await conn.sendMessage(m.chat, { delete: key })
+    await conn.sendMessage(m.chat, {
+      delete: {
+        remoteJid: m.chat,
+        fromMe: false,
+        id: m.key.id,
+        participant: m.key.participant || m.sender
+      }
+    })
   } catch {}
 
   return false
