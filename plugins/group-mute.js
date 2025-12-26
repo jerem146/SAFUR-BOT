@@ -1,57 +1,26 @@
-/*
-  Archivo: /plugins/mute.js
-*/
+let handler = async (m, { conn, text, command, usedPrefix }) => {
+    let who
+    if (m.isGroup) who = m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : text ? text.replace(/[^0-9]/g, '') + '@s.whatsapp.net' : false
+    else who = m.chat
+    
+    if (!who) throw `*⚠️ Etiqueta o responde al mensaje de la persona para ${command}*`
+    let user = global.db.data.users[who]
 
-let handler = async (m, { conn, usedPrefix, command }) => {
+    if (command === 'mute') {
+        if (user.muto) throw `*El usuario ya está muteado.*`
+        user.muto = true
+        user.deleteCount = 0
+        conn.reply(m.chat, `✅ El usuario *@${who.split('@')[0]}* ha sido muteado.\n\nCada mensaje que envíe será borrado. Si llega a 11 mensajes borrados, será eliminado.`, m, { mentions: [who] })
+    }
 
-  let user = m.mentionedJid?.[0] || m.quoted?.sender
-  if (!user) {
-    return m.reply(
-      `💡 *Uso correcto:*\n${usedPrefix + command} @usuario\nO responde a su mensaje.`
-    )
-  }
-
-  if (!global.db.data.users[user])
-    global.db.data.users[user] = {}
-
-  if (global.db.data.users[user].muto) {
-    return m.reply(
-      `[ ! ] @${user.split('@')[0]} ya está silenciado.`,
-      null,
-      { mentions: [user] }
-    )
-  }
-
-  global.db.data.users[user].muto = true
-
-  await conn.reply(
-    m.chat,
-    `[ 🔇 ] @${user.split('@')[0]} fue silenciado.`,
-    m,
-    { mentions: [user] }
-  )
+    if (command === 'unmute') {
+        if (!user.muto) throw `*El usuario no está muteado.*`
+        user.muto = false
+        user.deleteCount = 0
+        conn.reply(m.chat, `✅ El usuario *@${who.split('@')[0]}* ha sido desmuteado.`, m, { mentions: [who] })
+    }
 }
-
-/* 🔥 BLOQUEO REAL (smsg FIX) */
-handler.before = async function (m, { conn, isBotAdmin }) {
-  if (!m.isGroup || m.fromMe || !isBotAdmin) return false
-
-  let user = global.db.data.users[m.sender]
-  if (!user?.muto) return false
-
-  try {
-    // 🔴 ESTA ES LA CLAVE CON smsg
-    await conn.sendMessage(m.chat, { delete: m.msg.key })
-  } catch (e) {
-    console.log('Error delete:', e)
-  }
-
-  return true
-}
-
-handler.command = /^mute$/i
-handler.group = true
+handler.help = ['mute', 'unmute']
+handler.tags = ['admin']
+handler.command = ['mute', 'unmute']
 handler.admin = true
-handler.botAdmin = true
-
-export default handler
