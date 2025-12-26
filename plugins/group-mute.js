@@ -1,14 +1,10 @@
 /*
   Archivo: /plugins/mute.js
-  Comando: .mute
 */
 
 let handler = async (m, { conn, usedPrefix, command }) => {
 
-  let user =
-    m.mentionedJid?.[0] ||
-    m.quoted?.sender
-
+  let user = m.mentionedJid?.[0] || m.quoted?.sender
   if (!user) {
     return m.reply(
       `💡 *Uso correcto:*\n${usedPrefix + command} @usuario\nO responde a su mensaje.`
@@ -27,7 +23,6 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   }
 
   global.db.data.users[user].muto = true
-  global.db.data.users[user].muteWarn = 0
 
   await conn.reply(
     m.chat,
@@ -37,18 +32,21 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   )
 }
 
-/* 🔥 BLOQUEO REAL (COMPATIBLE CON TU HANDLER) */
+/* 🔥 BLOQUEO REAL (smsg FIX) */
 handler.before = async function (m, { conn, isBotAdmin }) {
   if (!m.isGroup || m.fromMe || !isBotAdmin) return false
 
   let user = global.db.data.users[m.sender]
-  if (!user || !user.muto) return false
+  if (!user?.muto) return false
 
   try {
-    await conn.sendMessage(m.chat, { delete: m.key })
-  } catch {}
+    // 🔴 ESTA ES LA CLAVE CON smsg
+    await conn.sendMessage(m.chat, { delete: m.msg.key })
+  } catch (e) {
+    console.log('Error delete:', e)
+  }
 
-  return false
+  return true
 }
 
 handler.command = /^mute$/i
