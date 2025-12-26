@@ -30,23 +30,15 @@ let handler = async (m, {
     )
   }
 
-  // 🔑 NORMALIZAR REAL
   who = normalize(conn.decodeJid(who))
-
-  // limpiar mutes viejos del mismo número
   const num = who.split('@')[0]
-  for (let jid in chat.mutedUsers) {
-    if (jid.startsWith(num)) delete chat.mutedUsers[jid]
-  }
 
-  // no admins
-  let target = participants.find(p => normalize(conn.decodeJid(p.id)) === who)
+  let target = participants.find(p =>
+    normalize(conn.decodeJid(p.id)) === who
+  )
   if (target?.admin) return m.reply('[ ! ] No puedo mutear a un administrador.')
 
-  chat.mutedUsers[who] = {
-    count: 0,
-    warned: false
-  }
+  chat.mutedUsers[who] = { count: 0 }
 
   return m.reply(
     `[ 🔇 ] *USUARIO MUTEADO*\n\n@${num} fue silenciado.`,
@@ -55,7 +47,7 @@ let handler = async (m, {
   )
 }
 
-/* 🔍 MONITOR */
+/* 🔥 MONITOR REAL */
 handler.before = async function (m, {
   conn,
   chat,
@@ -64,15 +56,19 @@ handler.before = async function (m, {
   if (!m.isGroup || m.fromMe || !isBotAdmin) return false
   if (!chat?.mutedUsers) return false
 
-  const sender = normalize(conn.decodeJid(m.sender))
+  const sender = normalize(m.sender)
   if (!chat.mutedUsers[sender]) return false
 
-  try {
-    await conn.sendMessage(m.chat, { delete: m.key })
-    chat.mutedUsers[sender].count++
-  } catch {
-    return false
+  const key = {
+    remoteJid: m.chat,
+    fromMe: false,
+    id: m.key.id,
+    participant: m.key.participant || m.sender
   }
+
+  try {
+    await conn.sendMessage(m.chat, { delete: key })
+  } catch {}
 
   return false
 }
