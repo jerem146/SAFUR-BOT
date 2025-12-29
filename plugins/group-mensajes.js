@@ -2,52 +2,58 @@ import fs from 'fs'
 
 const dbPath = './database/msg-count.json'
 
-let handler = async (m, { conn }) => {
+var handler = async (m, { conn }) => {
   if (!m.isGroup) return
 
-  if (!fs.existsSync(dbPath)) return m.reply('❌ No hay datos aún')
+  if (!fs.existsSync(dbPath)) {
+    return conn.reply(m.chat, '❌ No hay datos de mensajes aún.', m)
+  }
 
   let data = JSON.parse(fs.readFileSync(dbPath))
   let chatData = data[m.chat]
-  if (!chatData) return m.reply('❌ No hay registros en este grupo')
 
-  let target = null
-
-  // ✅ 1. RESPONDER MENSAJE
-  if (m.quoted?.sender) {
-    target = m.quoted.sender
+  if (!chatData) {
+    return conn.reply(m.chat, '❌ No hay mensajes registrados en este grupo.', m)
   }
 
-  // ✅ 2. ETIQUETAR (@usuario) — ESTA ES LA CLAVE
-  else if (m.mentionedJid && m.mentionedJid.length > 0) {
-    target = m.mentionedJid[0]
-  }
+  // ───── MISMA LÓGICA QUE TU PROMOTE (FUNCIONA) ─────
+  let mentionedJid = await m.mentionedJid
+  let user =
+    mentionedJid && mentionedJid.length
+      ? mentionedJid[0]
+      : m.quoted && m.quoted.sender
+      ? m.quoted.sender
+      : null
 
-  // ───── MOSTRAR SOLO UN USUARIO ─────
-  if (target) {
-    let count = chatData[target] || 0
-    let name = await conn.getName(target)
+  // ───── SI HAY USUARIO → SOLO ÉL ─────
+  if (user) {
+    let count = chatData[user] || 0
+    let name = await conn.getName(user)
 
-    return m.reply(
+    return conn.reply(
+      m.chat,
       `📊 *Mensajes del participante*\n\n` +
-      `👤 ${name}\n` +
-      `💬 ${count} mensajes`
+        `👤 ${name}\n` +
+        `💬 ${count} mensajes`,
+      m
     )
   }
 
-  // ───── MOSTRAR TODOS ─────
+  // ───── SI NO HAY USUARIO → TODOS ─────
   let text = `📊 *Mensajes del grupo*\n\n`
   let i = 1
 
-  for (let user in chatData) {
-    let name = await conn.getName(user)
-    text += `${i}. ${name} — *${chatData[user]}* mensajes\n`
+  for (let jid in chatData) {
+    let name = await conn.getName(jid)
+    text += `${i}. ${name} — *${chatData[jid]}* mensajes\n`
     i++
   }
 
-  m.reply(text)
+  conn.reply(m.chat, text, m)
 }
 
+handler.help = ['mensajes', 'msg']
+handler.tags = ['grupo']
 handler.command = ['mensajes', 'msg']
 handler.group = true
 
