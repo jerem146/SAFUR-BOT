@@ -1,0 +1,27 @@
+import fs from 'fs'
+
+const dbPath = './database/msg-count.json'
+
+var handler = async (m, { conn, isAdmin }) => {
+  if (!m.isGroup) return
+  if (!isAdmin) return conn.reply(m.chat, '❌ Solo administradores.', m)
+
+  if (!fs.existsSync(dbPath)) return conn.reply(m.chat, '❌ No hay datos.', m)
+
+  let data = JSON.parse(fs.readFileSync(dbPath))
+
+  if (!data[m.chat]) return conn.reply(m.chat, '❌ No hay registros.', m)
+
+  delete data[m.chat]
+  fs.writeFileSync(dbPath, JSON.stringify(data, null, 2))
+
+  conn.reply(m.chat, '✅ Contador de mensajes del grupo *reiniciado*.', m)
+}
+
+handler.help = ['resetmensajes']
+handler.tags = ['grupo']
+handler.command = ['resetmensajes', 'resetmsg']
+handler.group = true
+handler.admin = true
+
+export default handler
