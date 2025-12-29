@@ -25,6 +25,31 @@ if (global.db.data == null) await global.loadDatabase()
 try {
 m = smsg(this, m) || m
 if (!m) return
+//empieza 
+// 🔢 CONTADOR DE MENSAJES POR USUARIO EN GRUPOS
+try {
+  if (m.isGroup && !m.fromMe) {
+    const dbPath = './database/msg-count.json'
+
+    if (!fs.existsSync(dbPath)) {
+      fs.writeFileSync(dbPath, JSON.stringify({}))
+    }
+
+    let data = JSON.parse(fs.readFileSync(dbPath))
+    let chatId = m.chat
+    let userId = m.sender
+
+    if (!data[chatId]) data[chatId] = {}
+    if (!data[chatId][userId]) data[chatId][userId] = 0
+
+    data[chatId][userId] += 1
+
+    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2))
+  }
+} catch (e) {
+  console.error("Error contador mensajes:", e)
+}
+//fin
 m.exp = 0
 try {
 let user = global.db.data.users[m.sender]
