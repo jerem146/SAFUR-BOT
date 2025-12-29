@@ -2,7 +2,7 @@ import fs from 'fs'
 
 const dbPath = './database/msg-count.json'
 
-var handler = async (m, { conn, isAdmin, groupMetadata }) => {
+var handler = async (m, { conn, args, isAdmin, groupMetadata }) => {
   if (!m.isGroup) return
   if (!isAdmin) return conn.reply(m.chat, '❌ Solo administradores.', m)
 
@@ -14,26 +14,40 @@ var handler = async (m, { conn, isAdmin, groupMetadata }) => {
 
   let participants = groupMetadata.participants.map(p => p.id)
 
-  let zeroUsers = []
-  let text = `🚫 *PARTICIPANTES SIN MENSAJES*\n\n`
+  let filter = args[0] !== undefined ? Number(args[0]) : null
+  if (args[0] !== undefined && isNaN(filter))
+    return conn.reply(m.chat, '❌ Usa un número válido.\nEj: *.mensajes 0*', m)
+
+  let text = filter === null
+    ? `📊 *MENSAJES DEL GRUPO*\n\n`
+    : `📊 *PARTICIPANTES CON ${filter} MENSAJES*\n\n`
+
+  let mentions = []
+  let countShow = 0
 
   for (let jid of participants) {
     let count = chatData[jid] || 0
-    if (count === 0) {
-      zeroUsers.push(jid)
-      text += `• @${jid.split('@')[0]}\n`
+
+    if (filter === null || count === filter) {
+      mentions.push(jid)
+      text += `• @${jid.split('@')[0]} — *${count}*\n`
+      countShow++
     }
   }
 
-  if (!zeroUsers.length)
-    return conn.reply(m.chat, '✅ Todos han enviado mensajes.', m)
+  if (!countShow)
+    return conn.reply(
+      m.chat,
+      `❌ Nadie tiene *${filter}* mensajes.`,
+      m
+    )
 
-  await conn.reply(m.chat, text, m, { mentions: zeroUsers })
+  await conn.reply(m.chat, text, m, { mentions })
 }
 
-handler.help = ['mensajes0']
+handler.help = ['mensajes [numero]']
 handler.tags = ['grupo']
-handler.command = ['mensajes0', 'msg0']
+handler.command = ['mensajes', 'msg']
 handler.group = true
 handler.admin = true
 
