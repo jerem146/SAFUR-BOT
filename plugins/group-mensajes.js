@@ -1,29 +1,29 @@
 import fs from 'fs'
 
+const dbPath = './database/msg-count.json'
+
 let handler = async (m, { conn }) => {
   if (!m.isGroup) return
 
-  const dbPath = './database/msg-count.json'
-  if (!fs.existsSync(dbPath)) return m.reply('❌ No hay datos')
+  if (!fs.existsSync(dbPath)) return m.reply('❌ No hay datos aún')
 
   let data = JSON.parse(fs.readFileSync(dbPath))
   let chatData = data[m.chat]
-  if (!chatData) return m.reply('❌ Aún no hay registros')
+  if (!chatData) return m.reply('❌ No hay registros en este grupo')
 
-  // ───── OBTENER USUARIO OBJETIVO ─────
   let target = null
 
-  // 1️⃣ Responder mensaje
+  // ✅ 1. RESPONDER MENSAJE
   if (m.quoted?.sender) {
     target = m.quoted.sender
   }
 
-  // 2️⃣ Etiquetar (@usuario)
-  else if (m.message?.extendedTextMessage?.contextInfo?.mentionedJid?.length) {
-    target = m.message.extendedTextMessage.contextInfo.mentionedJid[0]
+  // ✅ 2. ETIQUETAR (@usuario) — ESTA ES LA CLAVE
+  else if (m.mentionedJid && m.mentionedJid.length > 0) {
+    target = m.mentionedJid[0]
   }
 
-  // ───── SI HAY USUARIO → MOSTRAR SOLO ÉL ─────
+  // ───── MOSTRAR SOLO UN USUARIO ─────
   if (target) {
     let count = chatData[target] || 0
     let name = await conn.getName(target)
@@ -35,14 +35,13 @@ let handler = async (m, { conn }) => {
     )
   }
 
-  // ───── SIN ETIQUETA → TODOS ─────
+  // ───── MOSTRAR TODOS ─────
   let text = `📊 *Mensajes del grupo*\n\n`
   let i = 1
 
-  for (let user of Object.keys(chatData)) {
+  for (let user in chatData) {
     let name = await conn.getName(user)
-    let count = chatData[user]
-    text += `${i}. ${name} — *${count}* mensajes\n`
+    text += `${i}. ${name} — *${chatData[user]}* mensajes\n`
     i++
   }
 
