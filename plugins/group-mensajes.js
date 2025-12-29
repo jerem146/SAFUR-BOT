@@ -1,22 +1,20 @@
 import fs from 'fs'
 
 let handler = async (m, { conn }) => {
-  if (!m.isGroup) return m.reply('❌ Este comando solo funciona en grupos')
+  if (!m.isGroup) return
 
   const dbPath = './database/msg-count.json'
-  if (!fs.existsSync(dbPath)) return m.reply('❌ No hay datos aún')
+  if (!fs.existsSync(dbPath)) return m.reply('❌ No hay datos')
 
   let data = JSON.parse(fs.readFileSync(dbPath))
-  let chatId = m.chat
-
-  if (!data[chatId]) return m.reply('❌ No hay mensajes registrados en este grupo')
+  let chatData = data[m.chat]
+  if (!chatData) return m.reply('❌ No hay mensajes')
 
   let userId = m.mentionedJid?.[0] || m.sender
-  let count = data[chatId][userId] || 0
-
+  let count = chatData[userId] || 0
   let name = await conn.getName(userId)
 
-  m.reply(`📊 *Mensajes en este grupo*\n\n👤 *Usuario:* ${name}\n💬 *Mensajes:* ${count}`)
+  m.reply(`📊 *Mensajes del grupo*\n\n👤 ${name}\n💬 ${count} mensajes`)
 }
 
 handler.command = ['mensajes', 'msg']
