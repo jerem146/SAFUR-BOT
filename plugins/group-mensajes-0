@@ -1,0 +1,40 @@
+import fs from 'fs'
+
+const dbPath = './database/msg-count.json'
+
+var handler = async (m, { conn, isAdmin, groupMetadata }) => {
+  if (!m.isGroup) return
+  if (!isAdmin) return conn.reply(m.chat, '❌ Solo administradores.', m)
+
+  if (!fs.existsSync(dbPath))
+    return conn.reply(m.chat, '❌ No hay datos.', m)
+
+  let data = JSON.parse(fs.readFileSync(dbPath))
+  let chatData = data[m.chat] || {}
+
+  let participants = groupMetadata.participants.map(p => p.id)
+
+  let zeroUsers = []
+  let text = `🚫 *PARTICIPANTES SIN MENSAJES*\n\n`
+
+  for (let jid of participants) {
+    let count = chatData[jid] || 0
+    if (count === 0) {
+      zeroUsers.push(jid)
+      text += `• @${jid.split('@')[0]}\n`
+    }
+  }
+
+  if (!zeroUsers.length)
+    return conn.reply(m.chat, '✅ Todos han enviado mensajes.', m)
+
+  await conn.reply(m.chat, text, m, { mentions: zeroUsers })
+}
+
+handler.help = ['mensajes0']
+handler.tags = ['grupo']
+handler.command = ['mensajes0', 'msg0']
+handler.group = true
+handler.admin = true
+
+export default handler
