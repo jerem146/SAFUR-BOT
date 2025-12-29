@@ -29,25 +29,23 @@ if (!m) return
 // 🔢 CONTADOR DE MENSAJES POR USUARIO EN GRUPOS
 try {
   if (m.isGroup && !m.fromMe) {
-    const dbPath = './database/msg-count.json'
+    const dir = './database'
+    const dbPath = dir + '/msg-count.json'
 
-    if (!fs.existsSync(dbPath)) {
-      fs.writeFileSync(dbPath, JSON.stringify({}))
-    }
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir)
+    if (!fs.existsSync(dbPath)) fs.writeFileSync(dbPath, JSON.stringify({}))
 
     let data = JSON.parse(fs.readFileSync(dbPath))
-    let chatId = m.chat
-    let userId = m.sender
 
-    if (!data[chatId]) data[chatId] = {}
-    if (!data[chatId][userId]) data[chatId][userId] = 0
+    if (!data[m.chat]) data[m.chat] = {}
+    if (!data[m.chat][m.sender]) data[m.chat][m.sender] = 0
 
-    data[chatId][userId] += 1
+    data[m.chat][m.sender]++
 
     fs.writeFileSync(dbPath, JSON.stringify(data, null, 2))
   }
 } catch (e) {
-  console.error("Error contador mensajes:", e)
+  console.error('Error contador mensajes:', e)
 }
 //fin
 m.exp = 0
