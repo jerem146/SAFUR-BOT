@@ -2,8 +2,9 @@ import fs from 'fs'
 
 const dbPath = './database/msg-count.json'
 
-var handler = async (m, { conn }) => {
+var handler = async (m, { conn, isAdmin }) => {
   if (!m.isGroup) return
+  if (!isAdmin) return conn.reply(m.chat, '❌ Solo los administradores pueden usar este comando.', m)
 
   if (!fs.existsSync(dbPath)) {
     return conn.reply(m.chat, '❌ No hay datos de mensajes aún.', m)
@@ -16,7 +17,7 @@ var handler = async (m, { conn }) => {
     return conn.reply(m.chat, '❌ No hay mensajes registrados en este grupo.', m)
   }
 
-  // ───── MISMA LÓGICA QUE TU PROMOTE (FUNCIONA) ─────
+  // 🔥 MISMA LÓGICA QUE TU PROMOTE (FUNCIONA)
   let mentionedJid = await m.mentionedJid
   let user =
     mentionedJid && mentionedJid.length
@@ -56,5 +57,6 @@ handler.help = ['mensajes', 'msg']
 handler.tags = ['grupo']
 handler.command = ['mensajes', 'msg']
 handler.group = true
+handler.admin = true   // 🔐 SOLO ADMINS
 
 export default handler
