@@ -1,4 +1,4 @@
-import fs from 'fs'
+/*import fs from 'fs'
 
 const dbPath = './database/msg-count.json'
 
@@ -91,4 +91,4 @@ handler.group = true
 handler.admin = true
 handler.botAdmin = true
 
-export default handler
+export default handler*/
