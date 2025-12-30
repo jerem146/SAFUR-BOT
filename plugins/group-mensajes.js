@@ -2,81 +2,115 @@ import fs from 'fs'
 
 const dbPath = './database/msg-count.json'
 
-var handler = async (m, { conn, isAdmin, args, groupMetadata }) => {
+var handler = async (m, { conn, args, isAdmin, isBotAdmin, groupMetadata }) => {
   if (!m.isGroup) return
-  if (!isAdmin)
-    return conn.reply(
-      m.chat,
-      '❌ Solo los administradores pueden usar este comando.',
-      m
-    )
 
   if (!fs.existsSync(dbPath))
     return conn.reply(m.chat, '❌ No hay datos de mensajes aún.', m)
 
   let data = JSON.parse(fs.readFileSync(dbPath))
-  let chatData = data[m.chat]
+  let chatData = data[m.chat] || {}
 
-  if (!chatData)
+  let participants = groupMetadata.participants
+  let botJid = conn.user.jid
+
+  // ───── 1️⃣ .mensajes (SIN ARGUMENTOS) ─────
+  if (!args[0]) {
+    let text = `📊 *Mensajes del grupo*\n\n`
+    let mentions = []
+
+    for (let p of participants) {
+      let jid = p.id
+      if (jid === botJid) continue
+
+      let count = chatData[jid] || 0
+      text += `• @${jid.split('@')[0]} — *${count}*\n`
+      mentions.push(jid)
+    }
+
+    return conn.sendMessage(
+      m.chat,
+      { text, mentions },
+      { quoted: m }
+    )
+  }
+
+  // ───── VALIDAR NÚMERO ─────
+  if (isNaN(args[0]))
     return conn.reply(
       m.chat,
-      '❌ No hay mensajes registrados en este grupo.',
+      '❌ Usa un número válido.\nEjemplo:\n.mensajes 0\n.mensajes 1',
       m
     )
 
-  // ───── FILTRO POR NÚMERO DE MENSAJES ─────
-  if (args[0]) {
-    let target = Number(args[0])
-    if (isNaN(target))
-      return conn.reply(
-        m.chat,
-        '❌ Usa un número válido.\nEjemplo: *.mensajes 1*',
-        m
-      )
+  let target = Number(args[0])
 
+  // ───── 2️⃣ .mensajes <numero> ─────
+  if (!args[1]) {
     let text = `📊 *Participantes con ${target} mensajes*\n\n`
     let mentions = []
-    let total = 0
+    let found = false
 
-    for (let p of groupMetadata.participants) {
+    for (let p of participants) {
       let jid = p.id
-      let count = chatData[jid] || 0
+      if (jid === botJid) continue
 
+      let count = chatData[jid] || 0
       if (count === target) {
+        text += `• @${jid.split('@')[0]}\n`
         mentions.push(jid)
-        text += `• @${jid.split('@')[0]} — *${count}*\n`
-        total++
+        found = true
       }
     }
 
-    if (!total)
+    if (!found)
       return conn.reply(
         m.chat,
-        `❌ Nadie tiene *${target}* mensajes.`,
+        `❌ Nadie tiene ${target} mensajes.`,
         m
       )
 
-    return conn.reply(m.chat, text, m, { mentions })
+    return conn.sendMessage(
+      m.chat,
+      { text, mentions },
+      { quoted: m }
+    )
   }
 
-  // ───── SIN ARGUMENTOS → TODOS ─────
-  let text = `📊 *Mensajes del grupo*\n\n`
-  let mentions = []
+  // ───── 3️⃣ .mensajes <numero> eliminar ─────
+  if (args[1] === 'eliminar') {
+    if (!isAdmin)
+      return conn.reply(m.chat, '❌ Solo admins pueden eliminar.', m)
 
-  for (let p of groupMetadata.participants) {
-    let jid = p.id
-    let count = chatData[jid] || 0
-    mentions.push(jid)
-    text += `• @${jid.split('@')[0]} — *${count}*\n`
+    if (!isBotAdmin)
+      return conn.reply(m.chat, '❌ Debo ser admin.', m)
+
+    let removed = 0
+
+    for (let p of participants) {
+      let jid = p.id
+      if (jid === botJid) continue
+      if (p.admin) continue
+
+      let count = chatData[jid] || 0
+      if (count === target) {
+        await conn.groupParticipantsUpdate(m.chat, [jid], 'remove')
+        removed++
+        await new Promise(r => setTimeout(r, 1200))
+      }
+    }
+
+    return conn.reply(
+      m.chat,
+      `🧹 Limpieza completa\n\n👢 Eliminados: *${removed}*\n📌 Mensajes: *${target}*`,
+      m
+    )
   }
-
-  conn.reply(m.chat, text, m, { mentions })
 }
 
-handler.help = ['mensajes [numero]']
+handler.help = ['mensajes', 'mensajes <n>', 'mensajes <n> eliminar']
 handler.tags = ['grupo']
-handler.command = ['mensajes', 'msg']
+handler.command = ['mensajes']
 handler.group = true
-handler.admin = true
 
 export default handler
